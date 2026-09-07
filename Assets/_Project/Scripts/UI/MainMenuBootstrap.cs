@@ -99,8 +99,8 @@ namespace HighNoon
             _normalImg.color = MatchSettings.BotDifficulty == Difficulty.Normal ? Selected : Normal;
             _hardImg.color   = MatchSettings.BotDifficulty == Difficulty.Hard   ? Selected : Normal;
 
-            // Player count only applies to PvP.
-            float pa = mode == GameMode.PvP ? 1f : 0.4f;
+            // Player count applies to PvP and PvE (Coop is always 2 players).
+            float pa = mode != GameMode.Coop ? 1f : 0.4f;
             SetAlpha(_p1Img, pa); SetAlpha(_p2Img, pa);
 
             // Difficulty applies to menu-chosen bots (PvP single player or Coop). PvE sets it per stage.

@@ -89,17 +89,34 @@ namespace HighNoon
             manager.PveMode = pve;
             manager.Duelists = duelists;
             if (pve)
-                hud.SetPveStatus($"STAGE {Campaign.Stage + 1}/{Campaign.Stages.Length}   ·   {Campaign.Current.Title}   ·   LIVES {Campaign.Lives}");
+            {
+                string tag = MatchSettings.Players == PvPPlayers.TwoPlayers ? "CO-OP" : "SOLO";
+                hud.SetPveStatus($"STAGE {Campaign.Stage + 1}/{Campaign.Stages.Length}   ·   {Campaign.Current.Title}   ·   LIVES {Campaign.Lives}   ·   {tag}");
+            }
             manager.StartDuel();
         }
 
         List<Duelist> BuildPve()
         {
-            // Solo campaign duel: you (bottom) vs one bot opponent (top).
+            string opponent = Campaign.Current.Title;
+
+            // Two players share the bottom; two bots (the stage opponents) hold the top.
+            if (MatchSettings.Players == PvPPlayers.TwoPlayers)
+            {
+                return new List<Duelist>
+                {
+                    MakeDuelist(DuelSide.Bottom, 0, -2f, false, ColP1,    "P1",     BottomLeft,  Key.A),
+                    MakeDuelist(DuelSide.Bottom, 1,  2f, false, ColP2,    "P2",     BottomRight, Key.D),
+                    MakeDuelist(DuelSide.Top,    0, -2f, true,  ColEnemy, opponent, TopLeft,     Key.None),
+                    MakeDuelist(DuelSide.Top,    1,  2f, true,  ColEnemy, opponent, TopRight,    Key.None),
+                };
+            }
+
+            // Solo: you (bottom) vs one bot opponent (top).
             return new List<Duelist>
             {
-                MakeDuelist(DuelSide.Bottom, 0, 0f, false, ColP1,    "YOU",                  BottomHalf, Key.S),
-                MakeDuelist(DuelSide.Top,    0, 0f, true,  ColEnemy, Campaign.Current.Title, TopHalf,    Key.None),
+                MakeDuelist(DuelSide.Bottom, 0, 0f, false, ColP1,    "YOU",    BottomHalf, Key.S),
+                MakeDuelist(DuelSide.Top,    0, 0f, true,  ColEnemy, opponent, TopHalf,    Key.None),
             };
         }
 
