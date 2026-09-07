@@ -22,7 +22,7 @@ Code-first: each scene has ONE bootstrap component that builds the camera, backg
 - **Core/** — `DuelBootstrap` (assembles the duel scene), `DuelManager` (round state machine), `Duelist` (per-cowboy runtime state), `DuelEnums`, `MatchSettings` (static carrier from menu → duel).
 - **Input/** — `IDuelInput`; `HumanDuelInput` (first touch/click in a screen zone, keyboard fallback, multi-touch aware); `BotDuelInput` (fires at BANG + random reaction).
 - **Config/** — `DuelConfig`, `BotConfig` (ScriptableObjects; runtime instances created if none assigned).
-- **View/** — `DuelistView` (poses via frame animation), `FrameAnimator`, `CowboyArt` (procedural pixel cowboy frames), `PlaceholderArt` (background/tumbleweed sprites), `CameraShake`, `Tumbleweed`.
+- **View/** — `DuelistView` (poses via frame animation), `FrameAnimator`, `CowboyArt` (procedural pixel cowboy frames) driven by `CowboyLook` (hat style / chest accessory / facial hair / colors — gives each opponent a distinct look), `PlaceholderArt` + `PropArt` (background/prop sprites), `Arena` + `BackgroundBuilder` (procedural arenas), `CameraShake`, `Tumbleweed`.
 - **UI/** — `MainMenuBootstrap`, `DuelHUD` (BANG!, reaction popups, full-screen flash, result panel).
 - **Audio/** — `DuelAudio` (procedural placeholder SFX: tension loop, noon bell, gunshot, thud).
 
@@ -57,4 +57,4 @@ Reaction is an **interval**, never a fixed time: `BotConfig.reactionMin..reactio
 - To eyeball procedural art: blit frames to a PNG contact sheet via `execute_code(safety_checks=false)` and open it.
 
 ## Roadmap
-PvP core ✅ · main menu ✅ · pixel art + frame animation ✅ · juice (shake/flash/hit-stop/tumbleweed) ✅ · 6 arenas ✅ · Coop 2v2 ✅ · PvE (solo + 2-player) ✅ · PvE chapters + visual mission map ✅ · pre-duel dialogs ✅ · chapter-intro / victory / defeat screens ✅ → **more chapters/content** · balance/audio · per-opponent sprite variety. Deliberately **no visible pre-BANG countdown** (tension is audio-only) and **no arena picker** (random for PvP/Coop; PvE decides per stage/chapter). **User handles Android builds + git commits.**
+PvP core ✅ · main menu ✅ · pixel art + frame animation ✅ · juice (shake/flash/hit-stop/tumbleweed) ✅ · 6 arenas ✅ · Coop 2v2 ✅ · PvE (solo + 2-player) ✅ · PvE chapters + visual mission map ✅ · pre-duel dialogs ✅ · chapter-intro / victory / defeat screens ✅ · per-opponent look variety (CowboyLook) ✅ → **more chapters/content** · balance/audio. Deliberately **no visible pre-BANG countdown** (tension is audio-only) and **no arena picker** (random for PvP/Coop; PvE decides per stage/chapter). **User handles Android builds + git commits.**
