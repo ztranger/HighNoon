@@ -23,12 +23,14 @@ Code-first: each scene has ONE bootstrap component that builds the camera, backg
 - **Input/** — `IDuelInput`; `HumanDuelInput` (first touch/click in a screen zone, keyboard fallback, multi-touch aware); `BotDuelInput` (fires at BANG + random reaction).
 - **Config/** — `DuelConfig`, `BotConfig` (ScriptableObjects; runtime instances created if none assigned).
 - **View/** — `DuelistView` (poses via frame animation), `FrameAnimator`, `CowboyArt` (procedural pixel cowboy frames) driven by `CowboyLook` (hat style / chest accessory / facial hair / colors — gives each opponent a distinct look), `PlaceholderArt` + `PropArt` (background/prop sprites), `Arena` + `BackgroundBuilder` (procedural arenas), `CameraShake`, `Tumbleweed`.
-- **UI/** — `MainMenuBootstrap`, `DuelHUD` (BANG!, reaction popups, full-screen flash, result panel).
+- **UI/** — `MainMenuBootstrap`, `MapBootstrap` (PvE chapter map), `StoryBootstrap` (chapter/victory/defeat), `DialogBox` (pre-duel banter), `IconArt` (app-icon generator), `DuelHUD` (BANG!, per-duelist reaction popups pinned above each cowboy, full-screen flash, result panel with configurable buttons, PvE status line).
 - **Audio/** — `DuelAudio` (procedural placeholder SFX: tension loop, noon bell, gunshot, thud).
 
 ### Duel state machine (`DuelManager`)
 `Intro (walk in) → Stance → Tension (hidden random countdown, players never see it) → Bang → Resolved → Result`.
 Fires are compared by timestamp (`Time.realtimeSinceStartupAsDouble`); earliest valid tap wins. A tap before BANG = false start (that duelist loses their lane).
+
+**Responsiveness (reaction game — latency matters):** the shoot flash + gunshot fire the **instant** a duelist taps (`FireFxForNew`, per frame). **Each lane resolves independently** the moment its first valid post-BANG shot lands (`ResolveLaneInstant`) — the shooter wins and the opponent drops immediately, blocked from firing (`Duelist.ShotFx`), so the loser never shoots. In 2v2 the two lanes (pairs) resolve on their own timing. (`AppInit.Apply()` sets only `runInBackground`; frame rate left at platform default.)
 
 **Lane-based / rounds:** duelists are paired by `Duelist.Lane` (Bottom vs Top). 1v1 = one lane. 2v2 (Coop) = lanes 0 & 1 resolved in parallel; if each side wins one lane, the two survivors get `Lane = 0` and fight a tie-break round until one side owns the match. Coop = 2 human players share the bottom (quadrant tap zones, editor keys A/D), two bots on top.
 

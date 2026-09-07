@@ -14,6 +14,7 @@ namespace HighNoon
         public DuelOutcome Outcome = DuelOutcome.None;
         public double ReactionSeconds = -1;
         public bool FalseStarted;
+        public bool ShotFx;   // immediate shoot feedback already played for this fire
 
         public bool Fired => Input != null && Input.HasFired;
 
@@ -22,6 +23,7 @@ namespace HighNoon
             Outcome = DuelOutcome.None;
             ReactionSeconds = -1;
             FalseStarted = false;
+            ShotFx = false;
             Input?.ResetInput();
         }
     }

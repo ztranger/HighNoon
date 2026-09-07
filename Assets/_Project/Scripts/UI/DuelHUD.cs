@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -15,7 +16,7 @@ namespace HighNoon
         Font _font;
         Image _flash;
         Text _bangText;
-        Text _bottomReaction, _topReaction;
+        readonly List<GameObject> _reactions = new List<GameObject>();
         GameObject _resultPanel;
         Text _resultText;
         Text _pveStatus;
@@ -51,11 +52,6 @@ namespace HighNoon
             _bangText.color = new Color(0.9f, 0.1f, 0.1f);
             _bangText.fontStyle = FontStyle.Bold;
             _bangText.gameObject.SetActive(false);
-
-            _topReaction = MakeText(transform, "TopReaction", 72, new Vector2(0.5f, 0.72f), Vector2.zero, 900, 120);
-            _topReaction.gameObject.SetActive(false);
-            _bottomReaction = MakeText(transform, "BottomReaction", 72, new Vector2(0.5f, 0.28f), Vector2.zero, 900, 120);
-            _bottomReaction.gameObject.SetActive(false);
 
             _pveStatus = MakeText(transform, "PveStatus", 40, new Vector2(0.5f, 0.955f), Vector2.zero, 1040, 70);
             _pveStatus.color = new Color(1f, 0.94f, 0.78f);
@@ -130,8 +126,8 @@ namespace HighNoon
         public void HideAll()
         {
             _bangText.gameObject.SetActive(false);
-            _topReaction.gameObject.SetActive(false);
-            _bottomReaction.gameObject.SetActive(false);
+            foreach (var r in _reactions) if (r != null) Destroy(r);
+            _reactions.Clear();
             _resultPanel.SetActive(false);
         }
 
@@ -175,25 +171,19 @@ namespace HighNoon
             rt.localScale = Vector3.one;
         }
 
-        public void ShowReaction(DuelSide side, double seconds, bool winner, bool falseStart, bool fired)
+        /// <summary>Floating reaction popup pinned above a duelist's world position (drawn on top).</summary>
+        public void ShowReactionAt(Vector3 worldPos, string text, Color color)
         {
-            var txt = side == DuelSide.Bottom ? _bottomReaction : _topReaction;
-            txt.gameObject.SetActive(true);
-            if (falseStart)
-            {
-                txt.text = "FALSE START!";
-                txt.color = new Color(1f, 0.6f, 0.1f);
-            }
-            else if (!fired)
-            {
-                txt.text = "— no shot —";
-                txt.color = new Color(1f, 0.5f, 0.5f);
-            }
-            else
-            {
-                txt.text = $"{seconds * 1000.0:0} ms";
-                txt.color = winner ? new Color(0.3f, 1f, 0.3f) : new Color(1f, 0.5f, 0.5f);
-            }
+            var cam = Camera.main;
+            if (cam == null) return;
+            Vector3 screen = cam.WorldToScreenPoint(worldPos);
+            RectTransformUtility.ScreenPointToLocalPointInRectangle((RectTransform)transform, screen, null, out var local);
+            var txt = MakeText(transform, "Reaction", 58, new Vector2(0.5f, 0.5f), local, 560, 100);
+            txt.text = text;
+            txt.color = color;
+            txt.fontStyle = FontStyle.Bold;
+            txt.transform.SetAsLastSibling(); // above the result panel
+            _reactions.Add(txt.gameObject);
         }
 
         public void ShowResult(string message, string label1, Action act1, string label2, Action act2)

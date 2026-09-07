@@ -24,7 +24,7 @@ namespace HighNoon
 
         void Start()
         {
-            Application.runInBackground = true;
+            AppInit.Apply();
             _font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             if (_font == null) _font = Resources.GetBuiltinResource<Font>("Arial.ttf");
 

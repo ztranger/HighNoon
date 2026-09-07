@@ -27,7 +27,7 @@ namespace HighNoon
 
         void Start()
         {
-            Application.runInBackground = true;
+            AppInit.Apply();
             MatchSettings.Mode = GameMode.PvE; // the map is the PvE hub; duels launched from it are PvE
             if (!Campaign.Active) Campaign.StartRun();
 

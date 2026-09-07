@@ -93,6 +93,7 @@ namespace HighNoon
             {
                 e += Time.deltaTime;
                 TickInputs(active, Time.realtimeSinceStartupAsDouble);
+                FireFxForNew(active); // instant feedback even on an early (false-start) tap
                 yield return null;
             }
 
@@ -104,18 +105,54 @@ namespace HighNoon
             Shake?.Shake(0.10f, 0.12f);
             Hud.Flash(new Color(1f, 1f, 1f, 0.45f), 0.14f);
 
-            const float maxWindow = 3f;
+            // Anyone who tapped before BANG jumped the gun.
+            foreach (var d in active)
+                d.FalseStarted = d.Input.HasFired && d.Input.FireTimeRealtime < _bangTime;
+
+            var lanes = active.Select(d => d.Lane).Distinct().ToList();
+            var resolved = new HashSet<int>();
+
+            // A false start settles its lane at once: the jumper loses, the other survives.
+            foreach (var lane in lanes)
+            {
+                var g = active.Where(d => d.Lane == lane).ToList();
+                if (g.Any(d => d.FalseStarted))
+                {
+                    ResolveLaneInstant(g, g.FirstOrDefault(d => !d.FalseStarted));
+                    resolved.Add(lane);
+                }
+            }
+
+            // Each remaining lane resolves the INSTANT its first valid (post-BANG) shot lands —
+            // the shooter wins and the opponent is dead before they draw (they never fire).
+            const float maxWindow = 1.5f;
             float w = 0f;
-            while (w < maxWindow)
+            while (resolved.Count < lanes.Count && w < maxWindow)
             {
                 w += Time.deltaTime;
-                TickInputs(active, Time.realtimeSinceStartupAsDouble);
-                if (active.All(d => d.Input.HasFired)) break;
+                double now = Time.realtimeSinceStartupAsDouble;
+                TickInputs(active, now);
+                FireFxForNew(active); // the instant you tap, your gun fires
+                foreach (var lane in lanes)
+                {
+                    if (resolved.Contains(lane)) continue;
+                    var g = active.Where(d => d.Lane == lane).ToList();
+                    Duelist winner = null;
+                    double best = double.MaxValue;
+                    foreach (var d in g)
+                        if (d.Input.HasFired && d.Input.FireTimeRealtime >= _bangTime && d.Input.FireTimeRealtime < best)
+                        { best = d.Input.FireTimeRealtime; winner = d; }
+                    if (winner != null) { ResolveLaneInstant(g, winner); resolved.Add(lane); }
+                }
                 yield return null;
             }
 
+            // Timed out: nobody in the lane drew in time — both are too slow (no survivor).
+            foreach (var lane in lanes)
+                if (!resolved.Contains(lane))
+                    ResolveLaneInstant(active.Where(d => d.Lane == lane).ToList(), null);
+
             Phase = DuelPhase.Resolved;
-            ResolveLanes(active);
             yield return StartCoroutine(ShowRoundResults(active));
         }
 
@@ -124,85 +161,81 @@ namespace HighNoon
             foreach (var d in active) d.Input.Tick(now);
         }
 
-        /// <summary>Classifies fires and picks a winner for each lane in the active set.</summary>
-        void ResolveLanes(List<Duelist> active)
+        /// <summary>Immediate shoot flash + gunshot the moment a duelist fires (once each).</summary>
+        void FireFxForNew(List<Duelist> active)
         {
             foreach (var d in active)
-            {
-                if (d.Input.HasFired)
+                if (d.Input.HasFired && !d.ShotFx)
                 {
-                    d.ReactionSeconds = d.Input.FireTimeRealtime - _bangTime;
-                    d.FalseStarted = d.ReactionSeconds < 0;
+                    d.ShotFx = true;
+                    d.View.PlayShoot();
+                    Audio.Gunshot();
+                    Shake?.Shake(0.12f, 0.10f);
+                }
+        }
+
+        /// <summary>
+        /// Settles one lane immediately: <paramref name="winner"/> survives; everyone else is
+        /// out — they fall now and are blocked from firing (the loser never gets a shot off).
+        /// </summary>
+        void ResolveLaneInstant(List<Duelist> group, Duelist winner)
+        {
+            bool anyDeath = false;
+            foreach (var d in group)
+            {
+                d.ReactionSeconds = (d.Input.HasFired && d.Input.FireTimeRealtime >= _bangTime)
+                    ? d.Input.FireTimeRealtime - _bangTime
+                    : -1;
+
+                if (d == winner)
+                {
+                    d.Outcome = DuelOutcome.Won;
                 }
                 else
                 {
-                    d.ReactionSeconds = -1;
-                    d.FalseStarted = false;
+                    d.Outcome = d.FalseStarted ? DuelOutcome.FalseStart : DuelOutcome.Lost;
+                    d.ShotFx = true;     // the loser is out — no shoot FX for them
+                    d.View.PlayDeath();  // and they drop the instant the winner fires
+                    anyDeath = true;
                 }
             }
-
-            foreach (var lane in active.Select(d => d.Lane).Distinct())
+            if (anyDeath)
             {
-                var group = active.Where(d => d.Lane == lane).ToList();
-
-                // Winner = the earliest valid (post-BANG) shot.
-                Duelist winner = null;
-                double best = double.MaxValue;
-                foreach (var d in group)
-                    if (d.Input.HasFired && !d.FalseStarted && d.ReactionSeconds < best)
-                    {
-                        best = d.ReactionSeconds;
-                        winner = d;
-                    }
-
-                // Nobody clean: the least-bad shot (fired latest) survives, if anyone fired.
-                if (winner == null)
-                    foreach (var d in group)
-                        if (d.Input.HasFired &&
-                            (winner == null || d.Input.FireTimeRealtime > winner.Input.FireTimeRealtime))
-                            winner = d;
-
-                foreach (var d in group)
-                    d.Outcome = d == winner
-                        ? DuelOutcome.Won
-                        : (d.FalseStarted ? DuelOutcome.FalseStart : DuelOutcome.Lost);
+                Audio.Death();
+                Shake?.Shake(0.22f, 0.22f);
+                Hud.Flash(new Color(1f, 0.92f, 0.82f, 0.30f), 0.10f);
             }
         }
 
         IEnumerator ShowRoundResults(List<Duelist> active)
         {
-            bool anyGunshot = false;
+            // Per-duelist reaction popup, above each cowboy (captured before death anims move them).
             foreach (var d in active)
             {
-                if (d.Outcome == DuelOutcome.Won) { d.View.PlayShoot(); anyGunshot = true; }
-                else { d.View.PlayDeath(); }
+                Vector3 wp = d.View.transform.position + Vector3.up * (d.Side == DuelSide.Bottom ? 1.6f : -1.6f);
+                Hud.ShowReactionAt(wp, ReactionText(d), ReactionColor(d));
             }
 
-            // One reaction popup per side: the representative (winner, else fastest shot).
-            foreach (var side in new[] { DuelSide.Bottom, DuelSide.Top })
-            {
-                var group = active.Where(d => d.Side == side).ToList();
-                if (group.Count == 0) continue;
-                var rep = group.FirstOrDefault(d => d.Outcome == DuelOutcome.Won)
-                          ?? group.OrderBy(d => d.Input.HasFired ? d.ReactionSeconds : double.MaxValue).First();
-                Hud.ShowReaction(side, Mathf.Max(0f, (float)rep.ReactionSeconds),
-                    rep.Outcome == DuelOutcome.Won, rep.Outcome == DuelOutcome.FalseStart, rep.Input.HasFired);
-            }
-
-            if (anyGunshot)
-            {
-                Audio.Gunshot();
-                Shake?.Shake(0.32f, 0.32f);
-                Hud.Flash(new Color(1f, 1f, 1f, 0.6f), 0.12f);
-            }
-            Audio.Death();
-
-            // Hit-stop for impact — fx use unscaled time so they keep animating.
+            // Shots + deaths already played the instant each lane resolved — just a beat, then buttons.
             Time.timeScale = 0f;
-            yield return new WaitForSecondsRealtime(0.10f);
+            yield return new WaitForSecondsRealtime(0.08f);
             Time.timeScale = 1f;
 
             yield return new WaitForSeconds(Config.resultDelay);
+        }
+
+        static string ReactionText(Duelist d)
+        {
+            if (d.Outcome == DuelOutcome.FalseStart) return "FALSE START";
+            if (!d.Fired) return "—";
+            return $"{Mathf.Max(0f, (float)d.ReactionSeconds) * 1000f:0} ms";
+        }
+
+        static Color ReactionColor(Duelist d)
+        {
+            if (d.Outcome == DuelOutcome.FalseStart) return new Color(1f, 0.6f, 0.1f);
+            if (!d.Fired) return new Color(1f, 0.5f, 0.5f);
+            return d.Outcome == DuelOutcome.Won ? new Color(0.3f, 1f, 0.3f) : new Color(1f, 0.5f, 0.5f);
         }
 
         void ShowFinal(List<Duelist> lastRound, DuelSide? winningSide, bool draw)

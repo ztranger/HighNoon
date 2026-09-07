@@ -37,8 +37,7 @@ namespace HighNoon
 
         void Start()
         {
-            // Keep ticking while the window is unfocused (also in PlayerSettings for builds).
-            Application.runInBackground = true;
+            AppInit.Apply();
             EnhancedTouchSupport.Enable();
 
             bool pve = useMatchSettings && MatchSettings.Mode == GameMode.PvE;
