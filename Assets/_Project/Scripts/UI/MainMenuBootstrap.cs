@@ -19,6 +19,7 @@ namespace HighNoon
         static readonly Color Gold     = new Color(0.92f, 0.78f, 0.35f);
 
         Font _font;
+        Image _pvpImg, _coopImg, _pveImg;
         Image _p1Img, _p2Img, _easyImg, _normalImg, _hardImg;
 
         void Start()
@@ -50,11 +51,14 @@ namespace HighNoon
             MakeText(transform, "Title", "HIGH NOON", 150, new Vector2(0.5f, 0.88f), Vector2.zero, 1000, 220, Gold, FontStyle.Bold);
             MakeText(transform, "Subtitle", "— PvP Duel —", 54, new Vector2(0.5f, 0.80f), Vector2.zero, 900, 100, new Color(0.8f, 0.7f, 0.5f), FontStyle.Normal);
 
-            // Mode row (only PvP is active for now).
+            // Mode row (PvP + Coop active; PvE later).
             MakeText(transform, "ModeLabel", "MODE", 44, new Vector2(0.5f, 0.71f), Vector2.zero, 900, 70, new Color(0.7f, 0.62f, 0.5f), FontStyle.Normal);
-            MakeButton(transform, "ModePvP", "PvP", new Vector2(0.5f, 0.645f), new Vector2(-320, 0), 300, 110, 44, Selected, out _, true);
-            MakeButton(transform, "ModeCoop", "COOP", new Vector2(0.5f, 0.645f), new Vector2(0, 0), 300, 110, 40, Disabled, out _, false);
-            MakeButton(transform, "ModePvE", "PvE", new Vector2(0.5f, 0.645f), new Vector2(320, 0), 300, 110, 44, Disabled, out _, false);
+            var pvp = MakeButton(transform, "ModePvP", "PvP", new Vector2(0.5f, 0.645f), new Vector2(-320, 0), 300, 110, 44, Normal, out _pvpImg, true);
+            var coop = MakeButton(transform, "ModeCoop", "COOP", new Vector2(0.5f, 0.645f), new Vector2(0, 0), 300, 110, 40, Normal, out _coopImg, true);
+            var pve = MakeButton(transform, "ModePvE", "PvE", new Vector2(0.5f, 0.645f), new Vector2(320, 0), 300, 110, 44, Normal, out _pveImg, true);
+            pvp.onClick.AddListener(() => { MatchSettings.Mode = GameMode.PvP; RefreshHighlights(); });
+            coop.onClick.AddListener(() => { MatchSettings.Mode = GameMode.Coop; RefreshHighlights(); });
+            pve.onClick.AddListener(() => { MatchSettings.Mode = GameMode.PvE; RefreshHighlights(); });
 
             // Players.
             MakeText(transform, "PlayersLabel", "PLAYERS", 44, new Vector2(0.5f, 0.55f), Vector2.zero, 900, 70, new Color(0.7f, 0.62f, 0.5f), FontStyle.Normal);
@@ -74,11 +78,20 @@ namespace HighNoon
 
             // Play.
             var play = MakeButton(transform, "Play", "PLAY", new Vector2(0.5f, 0.15f), Vector2.zero, 620, 170, 72, Gold, out _, true);
-            play.onClick.AddListener(() => SceneManager.LoadScene("Duel"));
+            play.onClick.AddListener(() =>
+            {
+                if (MatchSettings.Mode == GameMode.PvE) Campaign.StartRun();
+                SceneManager.LoadScene("Duel");
+            });
         }
 
         void RefreshHighlights()
         {
+            var mode = MatchSettings.Mode;
+            _pvpImg.color  = mode == GameMode.PvP  ? Selected : Normal;
+            _coopImg.color = mode == GameMode.Coop ? Selected : Normal;
+            _pveImg.color  = mode == GameMode.PvE  ? Selected : Normal;
+
             _p1Img.color = MatchSettings.Players == PvPPlayers.OnePlayer ? Selected : Normal;
             _p2Img.color = MatchSettings.Players == PvPPlayers.TwoPlayers ? Selected : Normal;
 
@@ -86,9 +99,14 @@ namespace HighNoon
             _normalImg.color = MatchSettings.BotDifficulty == Difficulty.Normal ? Selected : Normal;
             _hardImg.color   = MatchSettings.BotDifficulty == Difficulty.Hard   ? Selected : Normal;
 
-            // Bot difficulty only matters when there is a bot (single player).
-            float a = MatchSettings.Players == PvPPlayers.OnePlayer ? 1f : 0.4f;
-            SetAlpha(_easyImg, a); SetAlpha(_normalImg, a); SetAlpha(_hardImg, a);
+            // Player count only applies to PvP.
+            float pa = mode == GameMode.PvP ? 1f : 0.4f;
+            SetAlpha(_p1Img, pa); SetAlpha(_p2Img, pa);
+
+            // Difficulty applies to menu-chosen bots (PvP single player or Coop). PvE sets it per stage.
+            bool botUsed = (mode == GameMode.PvP && MatchSettings.Players == PvPPlayers.OnePlayer) || mode == GameMode.Coop;
+            float da = botUsed ? 1f : 0.4f;
+            SetAlpha(_easyImg, da); SetAlpha(_normalImg, da); SetAlpha(_hardImg, da);
         }
 
         static void SetAlpha(Image img, float a)

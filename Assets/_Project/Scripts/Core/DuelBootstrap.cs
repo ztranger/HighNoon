@@ -1,23 +1,23 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.UI;
 using UnityEngine.InputSystem.EnhancedTouch;
 
 namespace HighNoon
 {
     /// <summary>
-    /// Single entry point for the PvP duel scene. Builds the camera, background,
-    /// duelists, HUD, audio, and the DuelManager at runtime so the scene needs only
-    /// this one component. Refactor to prefabs/inspector as real art arrives.
+    /// Assembles a duel scene at runtime: arena background, camera, HUD, audio, and the
+    /// duelists for the chosen mode (PvP = 1 lane, Coop = 2v2 across two lanes).
     /// </summary>
     public class DuelBootstrap : MonoBehaviour
     {
         [Header("Match setup")]
-        [Tooltip("Read mode/players/difficulty from the main menu (MatchSettings). Uncheck to use the manual flags below when opening this scene directly.")]
+        [Tooltip("Read mode/players/difficulty from the main menu. Uncheck to use the manual PvP flags when opening this scene directly.")]
         public bool useMatchSettings = true;
 
-        [Tooltip("Single player: leave the top slot as a bot. Used only when 'useMatchSettings' is off.")]
+        [Tooltip("PvP only, used when 'useMatchSettings' is off.")]
         public bool topIsBot = true;
         public bool bottomIsBot = false;
 
@@ -25,19 +25,40 @@ namespace HighNoon
         public DuelConfig duelConfig;
         public BotConfig botConfig;
 
+        CameraShake _shake;
+        ArenaDef _arena;
+
+        static readonly Color ColP1 = new Color(0.82f, 0.62f, 0.36f);
+        static readonly Color ColP2 = new Color(0.45f, 0.62f, 0.85f);
+        static readonly Color ColEnemy = new Color(0.78f, 0.32f, 0.30f);
+
+        static readonly Rect BottomHalf = new Rect(0f, 0f, 1f, 0.5f);
+        static readonly Rect TopHalf = new Rect(0f, 0.5f, 1f, 0.5f);
+        static readonly Rect BottomLeft = new Rect(0f, 0f, 0.5f, 0.5f);
+        static readonly Rect BottomRight = new Rect(0.5f, 0f, 0.5f, 0.5f);
+        static readonly Rect TopLeft = new Rect(0f, 0.5f, 0.5f, 0.5f);
+        static readonly Rect TopRight = new Rect(0.5f, 0.5f, 0.5f, 0.5f);
+
         void Start()
         {
-            // Keep the loop ticking when the editor/app is unfocused (also set in
-            // PlayerSettings for builds); without it play mode freezes in background.
+            // Keep ticking while the window is unfocused (also in PlayerSettings for builds).
             Application.runInBackground = true;
             EnhancedTouchSupport.Enable();
 
-            if (duelConfig == null) duelConfig = ScriptableObject.CreateInstance<DuelConfig>();
+            bool pve = useMatchSettings && MatchSettings.Mode == GameMode.PvE;
+            if (pve)
+            {
+                if (!Campaign.Active) Campaign.StartRun();
+                Campaign.ApplyToMatch(); // pins this stage's arena + difficulty
+            }
+            else if (useMatchSettings)
+            {
+                MatchSettings.ForcedArena = null; // PvP/Coop use random arenas
+            }
 
+            if (duelConfig == null) duelConfig = ScriptableObject.CreateInstance<DuelConfig>();
             if (useMatchSettings)
             {
-                bottomIsBot = false;
-                topIsBot = MatchSettings.Players == PvPPlayers.OnePlayer;
                 botConfig = ScriptableObject.CreateInstance<BotConfig>();
                 MatchSettings.ApplyDifficulty(botConfig);
             }
@@ -46,8 +67,9 @@ namespace HighNoon
                 botConfig = ScriptableObject.CreateInstance<BotConfig>();
             }
 
+            _arena = Arenas.Pick(MatchSettings.ForcedArena);
             SetupCamera();
-            SetupBackground();
+            BackgroundBuilder.Build(_arena);
             SetupEventSystem();
 
             var hud = new GameObject("HUD").AddComponent<DuelHUD>();
@@ -56,52 +78,85 @@ namespace HighNoon
             var audio = new GameObject("DuelAudio").AddComponent<DuelAudio>();
             audio.Setup();
 
-            var duelists = new List<Duelist>
-            {
-                MakeDuelist(DuelSide.Bottom, bottomIsBot, new Color(0.80f, 0.60f, 0.35f), bottomIsBot ? "BOT" : "PLAYER 1"),
-                MakeDuelist(DuelSide.Top,    topIsBot,    new Color(0.75f, 0.30f, 0.30f), topIsBot ? "BOT" : "PLAYER 2"),
-            };
+            bool coop = useMatchSettings && MatchSettings.Mode == GameMode.Coop;
+            var duelists = pve ? BuildPve() : coop ? BuildCoop() : BuildPvp();
 
             var manager = new GameObject("DuelManager").AddComponent<DuelManager>();
             manager.Config = duelConfig;
             manager.Hud = hud;
             manager.Audio = audio;
+            manager.Shake = _shake;
+            manager.PveMode = pve;
             manager.Duelists = duelists;
+            if (pve)
+                hud.SetPveStatus($"STAGE {Campaign.Stage + 1}/{Campaign.Stages.Length}   ·   {Campaign.Current.Title}   ·   LIVES {Campaign.Lives}");
             manager.StartDuel();
         }
 
-        Duelist MakeDuelist(DuelSide side, bool isBot, Color color, string label)
+        List<Duelist> BuildPve()
         {
-            var go = new GameObject(side + "_Cowboy");
+            // Solo campaign duel: you (bottom) vs one bot opponent (top).
+            return new List<Duelist>
+            {
+                MakeDuelist(DuelSide.Bottom, 0, 0f, false, ColP1,    "YOU",                  BottomHalf, Key.S),
+                MakeDuelist(DuelSide.Top,    0, 0f, true,  ColEnemy, Campaign.Current.Title, TopHalf,    Key.None),
+            };
+        }
+
+        List<Duelist> BuildPvp()
+        {
+            bool botBottom, botTop;
+            if (useMatchSettings)
+            {
+                botBottom = false;
+                botTop = MatchSettings.Players == PvPPlayers.OnePlayer;
+            }
+            else
+            {
+                botBottom = bottomIsBot;
+                botTop = topIsBot;
+            }
+
+            return new List<Duelist>
+            {
+                MakeDuelist(DuelSide.Bottom, 0, 0f, botBottom, ColP1,    botBottom ? "BOT" : "PLAYER 1", BottomHalf, Key.S),
+                MakeDuelist(DuelSide.Top,    0, 0f, botTop,    ColEnemy, botTop    ? "BOT" : "PLAYER 2", TopHalf,    Key.W),
+            };
+        }
+
+        List<Duelist> BuildCoop()
+        {
+            // Two players share the bottom (left/right); two bots hold the top.
+            return new List<Duelist>
+            {
+                MakeDuelist(DuelSide.Bottom, 0, -2f, false, ColP1,    "P1",  BottomLeft,  Key.A),
+                MakeDuelist(DuelSide.Bottom, 1,  2f, false, ColP2,    "P2",  BottomRight, Key.D),
+                MakeDuelist(DuelSide.Top,    0, -2f, true,  ColEnemy, "BOT", TopLeft,     Key.None),
+                MakeDuelist(DuelSide.Top,    1,  2f, true,  ColEnemy, "BOT", TopRight,    Key.None),
+            };
+        }
+
+        Duelist MakeDuelist(DuelSide side, int lane, float x, bool isBot, Color color, string label, Rect zone, Key key)
+        {
+            var go = new GameObject($"{side}_{lane}_Cowboy");
             float y = side == DuelSide.Bottom ? -2.6f : 2.6f;
-            go.transform.position = new Vector3(0f, y, 0f);
+            go.transform.position = new Vector3(x, y, 0f);
             go.transform.localScale = new Vector3(1.8f, 1.8f, 1f);
 
             var sr = go.AddComponent<SpriteRenderer>();
             sr.sortingOrder = 10;
 
             var view = go.AddComponent<DuelistView>();
-            view.Setup(sr, color, faceDown: side == DuelSide.Top); // Setup builds + assigns the sprite
+            view.Setup(sr, color, faceDown: side == DuelSide.Top);
 
-            IDuelInput input;
-            if (isBot)
-            {
-                input = new BotDuelInput(botConfig);
-            }
-            else
-            {
-                Rect zone = side == DuelSide.Bottom
-                    ? new Rect(0f, 0f, 1f, 0.5f)
-                    : new Rect(0f, 0.5f, 1f, 0.5f);
-                var key = side == DuelSide.Bottom
-                    ? UnityEngine.InputSystem.Key.S
-                    : UnityEngine.InputSystem.Key.W;
-                input = new HumanDuelInput(zone, key);
-            }
+            IDuelInput input = isBot
+                ? (IDuelInput)new BotDuelInput(botConfig)
+                : new HumanDuelInput(zone, key);
 
             return new Duelist
             {
                 Side = side,
+                Lane = lane,
                 Kind = isBot ? DuelistKind.Bot : DuelistKind.Human,
                 Input = input,
                 View = view,
@@ -121,22 +176,10 @@ namespace HighNoon
             cam.orthographicSize = 6f;
             cam.transform.position = new Vector3(0f, 0f, -10f);
             cam.clearFlags = CameraClearFlags.SolidColor;
-            cam.backgroundColor = new Color(0.85f, 0.72f, 0.45f);
-        }
+            cam.backgroundColor = _arena != null ? _arena.CameraFill : new Color(0.85f, 0.72f, 0.45f);
 
-        void SetupBackground()
-        {
-            var bg = new GameObject("Background");
-            var sr = bg.AddComponent<SpriteRenderer>();
-            sr.sprite = PlaceholderArt.SolidSprite(new Color(0.82f, 0.70f, 0.42f), 4, 4, 1);
-            sr.sortingOrder = -100;
-            bg.transform.localScale = new Vector3(20f, 26f, 1f);
-
-            var divider = new GameObject("Divider");
-            var dsr = divider.AddComponent<SpriteRenderer>();
-            dsr.sprite = PlaceholderArt.SolidSprite(new Color(0f, 0f, 0f, 0.18f), 4, 4, 1);
-            dsr.sortingOrder = -50;
-            divider.transform.localScale = new Vector3(20f, 0.12f, 1f);
+            _shake = cam.GetComponent<CameraShake>();
+            if (_shake == null) _shake = cam.gameObject.AddComponent<CameraShake>();
         }
 
         void SetupEventSystem()
@@ -144,8 +187,7 @@ namespace HighNoon
             if (FindFirstObjectByType<EventSystem>() != null) return;
             var es = new GameObject("EventSystem");
             es.AddComponent<EventSystem>();
-            var module = es.AddComponent<InputSystemUIInputModule>();
-            module.AssignDefaultActions();
+            es.AddComponent<InputSystemUIInputModule>().AssignDefaultActions();
         }
     }
 }

@@ -15,6 +15,9 @@ namespace HighNoon
         public static PvPPlayers Players = PvPPlayers.OnePlayer;
         public static Difficulty BotDifficulty = Difficulty.Normal;
 
+        /// <summary>Arena name to force, or null for a random arena each duel. The menu can set this later.</summary>
+        public static string ForcedArena = null;
+
         /// <summary>Writes difficulty-appropriate reaction times into a bot config.</summary>
         public static void ApplyDifficulty(BotConfig cfg)
         {

@@ -2,7 +2,7 @@
 
 2D pixel-art Wild West **reaction-duel** game. Ship order: **Android → iOS → Web**. Unity **6000.3.21f1**, URP **2D Renderer**, new **Input System**, portrait orientation.
 
-Two players hold opposite ends of one phone; each taps their half. On `BANG!` the first valid tap wins. Tapping *before* BANG is a false start (loss). Modes: **PvP** (built), **Coop 2v2** and **PvE** (planned).
+Two players hold opposite ends of one phone; each taps their half. On `BANG!` the first valid tap wins. Tapping *before* BANG is a false start (loss). Modes: **PvP** (built), **Coop 2v2** (built), **PvE campaign** (core loop built — solo staged run with lives; mission map + 2-player PvE TODO). **Android build/testing is the user's responsibility** — don't attempt APK builds here.
 
 ## Run it
 Open `Assets/_Project/Scenes/MainMenu.unity` → Play. Pick players / difficulty → PLAY.
@@ -26,7 +26,15 @@ Code-first: each scene has ONE bootstrap component that builds the camera, backg
 
 ### Duel state machine (`DuelManager`)
 `Intro (walk in) → Stance → Tension (hidden random countdown, players never see it) → Bang → Resolved → Result`.
-Fires are compared by timestamp (`Time.realtimeSinceStartupAsDouble`); earliest valid tap wins. A tap during Tension = false start (that duelist loses).
+Fires are compared by timestamp (`Time.realtimeSinceStartupAsDouble`); earliest valid tap wins. A tap before BANG = false start (that duelist loses their lane).
+
+**Lane-based / rounds:** duelists are paired by `Duelist.Lane` (Bottom vs Top). 1v1 = one lane. 2v2 (Coop) = lanes 0 & 1 resolved in parallel; if each side wins one lane, the two survivors get `Lane = 0` and fight a tie-break round until one side owns the match. Coop = 2 human players share the bottom (quadrant tap zones, editor keys A/D), two bots on top.
+
+### Arenas / locations
+Random per duel (`Arenas.Pick`, avoids immediate repeat). Six arenas: Prairie, Dusty Town, Red Canyon, Boot Hill, Green Valley, Salt Flats. Each built procedurally (noise ground + props). PvE will pin an arena per mission point via `MatchSettings.ForcedArena` — there is deliberately **no arena picker in the menu**.
+
+### PvE campaign (`Campaign`)
+Static run state (Core/`Campaign.cs`): `Stages[]` of `StageDef {Title, Arena, Difficulty}`, `Lives` (start 3), `Stage`. Menu PLAY in PvE mode calls `Campaign.StartRun()`; `DuelBootstrap` (PvE branch) builds a solo 1v1 (bottom "YOU" vs top bot = the stage opponent), pins the stage arena/difficulty via `Campaign.ApplyToMatch()`, and shows a top status line via `DuelHUD.SetPveStatus`. On result, `DuelManager.ShowPveResult`: **win** → advance stage (last stage → VICTORY) with a **NEXT** button; **loss** → `Lives--` (0 → DEFEAT) with a **RETRY** button. Buttons reload the `Duel` scene, which re-runs the current stage. `DuelHUD.ShowResult(message, label1, act1, label2, act2)` takes configurable buttons. Still solo-only; the visual mission map and 2-player PvE are TODO.
 
 ### Bots
 Reaction is an **interval**, never a fixed time: `BotConfig.reactionMin..reactionMax`, sampled with `RollReaction()` at BANG. Difficulty (`MatchSettings.ApplyDifficulty`): Easy 0.45–0.75s, Normal 0.30–0.48s, Hard 0.18–0.30s. Bots fill empty top slots (single-player PvP now; Coop/PvE later).
@@ -41,4 +49,4 @@ Reaction is an **interval**, never a fixed time: `BotConfig.reactionMin..reactio
 - To eyeball procedural art: blit frames to a PNG contact sheet via `execute_code(safety_checks=false)` and open it.
 
 ## Roadmap
-PvP core ✅ · main menu ✅ · pixel art + frame animation ✅ · **juice (in progress)** → local 2-player on device → Coop 2v2 → PvE campaign. Deliberately **no visible pre-BANG countdown** (tension is audio-only).
+PvP core ✅ · main menu ✅ · pixel art + frame animation ✅ · juice (shake/flash/hit-stop/tumbleweed) ✅ · 6 arenas ✅ · Coop 2v2 ✅ · PvE core loop ✅ → **PvE mission map** (visual node map; each node pins its arena) · 2-player PvE (2v2) · dialogs · balance/audio polish. Deliberately **no visible pre-BANG countdown** (tension is audio-only) and **no arena picker** (random for PvP/Coop; PvE decides per stage).

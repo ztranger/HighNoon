@@ -18,7 +18,10 @@ namespace HighNoon
         Text _bottomReaction, _topReaction;
         GameObject _resultPanel;
         Text _resultText;
-        Action _onRematch, _onMenu;
+        Text _pveStatus;
+        Button _btn1, _btn2;
+        Text _btn1Label, _btn2Label;
+        Action _act1, _act2;
 
         public void Setup()
         {
@@ -53,6 +56,11 @@ namespace HighNoon
             _topReaction.gameObject.SetActive(false);
             _bottomReaction = MakeText(transform, "BottomReaction", 72, new Vector2(0.5f, 0.28f), Vector2.zero, 900, 120);
             _bottomReaction.gameObject.SetActive(false);
+
+            _pveStatus = MakeText(transform, "PveStatus", 40, new Vector2(0.5f, 0.955f), Vector2.zero, 1040, 70);
+            _pveStatus.color = new Color(1f, 0.94f, 0.78f);
+            _pveStatus.fontStyle = FontStyle.Bold;
+            _pveStatus.gameObject.SetActive(false);
 
             BuildResultPanel();
             _resultPanel.SetActive(false);
@@ -92,10 +100,12 @@ namespace HighNoon
             _resultText = MakeText(_resultPanel.transform, "ResultText", 68, new Vector2(0.5f, 0.8f), Vector2.zero, 720, 200);
             _resultText.text = "Winner";
 
-            var rematch = MakeButton(_resultPanel.transform, "RematchButton", "REMATCH", new Vector2(0.5f, 0.45f));
-            var menu = MakeButton(_resultPanel.transform, "MenuButton", "MENU", new Vector2(0.5f, 0.2f));
-            rematch.onClick.AddListener(() => _onRematch?.Invoke());
-            menu.onClick.AddListener(() => _onMenu?.Invoke());
+            _btn1 = MakeButton(_resultPanel.transform, "Button1", "REMATCH", new Vector2(0.5f, 0.45f));
+            _btn2 = MakeButton(_resultPanel.transform, "Button2", "MENU", new Vector2(0.5f, 0.2f));
+            _btn1Label = _btn1.GetComponentInChildren<Text>();
+            _btn2Label = _btn2.GetComponentInChildren<Text>();
+            _btn1.onClick.AddListener(() => _act1?.Invoke());
+            _btn2.onClick.AddListener(() => _act2?.Invoke());
         }
 
         Button MakeButton(Transform parent, string name, string label, Vector2 anchor)
@@ -186,13 +196,24 @@ namespace HighNoon
             }
         }
 
-        public void ShowResult(string message, Action onRematch, Action onMenu)
+        public void ShowResult(string message, string label1, Action act1, string label2, Action act2)
         {
             _bangText.gameObject.SetActive(false); // clear the backdrop before the panel
-            _onRematch = onRematch;
-            _onMenu = onMenu;
             _resultText.text = message;
+            _btn1Label.text = label1;
+            _act1 = act1;
+            _btn2Label.text = label2;
+            _act2 = act2;
+            _btn2.gameObject.SetActive(!string.IsNullOrEmpty(label2));
             _resultPanel.SetActive(true);
+        }
+
+        /// <summary>Top-of-screen PvE status line (stage / opponent / lives). Empty hides it.</summary>
+        public void SetPveStatus(string text)
+        {
+            if (_pveStatus == null) return;
+            _pveStatus.text = text;
+            _pveStatus.gameObject.SetActive(!string.IsNullOrEmpty(text));
         }
     }
 }
