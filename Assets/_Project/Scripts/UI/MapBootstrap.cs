@@ -123,7 +123,7 @@ namespace HighNoon
                     tokRt.sizeDelta = new Vector2(96, 128);
                     tokRt.anchoredPosition = pos[i] + new Vector2(0f, size * 0.5f + 50f);
                     var tok = tokRt.gameObject.AddComponent<Image>();
-                    tok.sprite = CowboyArt.Build(new Color(0.82f, 0.62f, 0.36f)).Idle[0];
+                    tok.sprite = CowboyArt.Build(CowboyLook.Player()).Idle[0];
                     tok.raycastTarget = false;
                 }
             }

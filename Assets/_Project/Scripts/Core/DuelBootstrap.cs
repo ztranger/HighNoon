@@ -28,10 +28,6 @@ namespace HighNoon
         CameraShake _shake;
         ArenaDef _arena;
 
-        static readonly Color ColP1 = new Color(0.82f, 0.62f, 0.36f);
-        static readonly Color ColP2 = new Color(0.45f, 0.62f, 0.85f);
-        static readonly Color ColEnemy = new Color(0.78f, 0.32f, 0.30f);
-
         static readonly Rect BottomHalf = new Rect(0f, 0f, 1f, 0.5f);
         static readonly Rect TopHalf = new Rect(0f, 0.5f, 1f, 0.5f);
         static readonly Rect BottomLeft = new Rect(0f, 0f, 0.5f, 0.5f);
@@ -105,9 +101,11 @@ namespace HighNoon
                 foreach (var d in duelists) d.View.Stance();
                 var dialog = new GameObject("Dialog").AddComponent<DialogBox>();
                 dialog.Setup();
+                var playerLook = CowboyLook.Player();
+                var oppLook = stage.Look ?? CowboyLook.Enemy();
                 dialog.Play(stage.Intro,
-                    "YOU", ColP1, CowboyArt.Build(ColP1).Idle[0],
-                    stage.Title, ColEnemy, CowboyArt.Build(ColEnemy).Idle[0],
+                    "YOU", playerLook.Shirt, CowboyArt.Build(playerLook).Idle[0],
+                    stage.Title, oppLook.Shirt, CowboyArt.Build(oppLook).Idle[0],
                     manager.StartDuel);
             }
             else
@@ -119,24 +117,25 @@ namespace HighNoon
         List<Duelist> BuildPve()
         {
             string opponent = Campaign.CurrentStage.Title;
+            var oppLook = Campaign.CurrentStage.Look ?? CowboyLook.Enemy();
 
             // Two players share the bottom; two bots (the stage opponents) hold the top.
             if (MatchSettings.Players == PvPPlayers.TwoPlayers)
             {
                 return new List<Duelist>
                 {
-                    MakeDuelist(DuelSide.Bottom, 0, -2f, false, ColP1,    "P1",     BottomLeft,  Key.A),
-                    MakeDuelist(DuelSide.Bottom, 1,  2f, false, ColP2,    "P2",     BottomRight, Key.D),
-                    MakeDuelist(DuelSide.Top,    0, -2f, true,  ColEnemy, opponent, TopLeft,     Key.None),
-                    MakeDuelist(DuelSide.Top,    1,  2f, true,  ColEnemy, opponent, TopRight,    Key.None),
+                    MakeDuelist(DuelSide.Bottom, 0, -2f, false, CowboyLook.Player(),  "P1",     BottomLeft,  Key.A),
+                    MakeDuelist(DuelSide.Bottom, 1,  2f, false, CowboyLook.Player2(), "P2",     BottomRight, Key.D),
+                    MakeDuelist(DuelSide.Top,    0, -2f, true,  oppLook,              opponent, TopLeft,     Key.None),
+                    MakeDuelist(DuelSide.Top,    1,  2f, true,  oppLook,              opponent, TopRight,    Key.None),
                 };
             }
 
             // Solo: you (bottom) vs one bot opponent (top).
             return new List<Duelist>
             {
-                MakeDuelist(DuelSide.Bottom, 0, 0f, false, ColP1,    "YOU",    BottomHalf, Key.S),
-                MakeDuelist(DuelSide.Top,    0, 0f, true,  ColEnemy, opponent, TopHalf,    Key.None),
+                MakeDuelist(DuelSide.Bottom, 0, 0f, false, CowboyLook.Player(), "YOU",    BottomHalf, Key.S),
+                MakeDuelist(DuelSide.Top,    0, 0f, true,  oppLook,             opponent, TopHalf,    Key.None),
             };
         }
 
@@ -156,8 +155,8 @@ namespace HighNoon
 
             return new List<Duelist>
             {
-                MakeDuelist(DuelSide.Bottom, 0, 0f, botBottom, ColP1,    botBottom ? "BOT" : "PLAYER 1", BottomHalf, Key.S),
-                MakeDuelist(DuelSide.Top,    0, 0f, botTop,    ColEnemy, botTop    ? "BOT" : "PLAYER 2", TopHalf,    Key.W),
+                MakeDuelist(DuelSide.Bottom, 0, 0f, botBottom, botBottom ? CowboyLook.Enemy() : CowboyLook.Player(),  botBottom ? "BOT" : "PLAYER 1", BottomHalf, Key.S),
+                MakeDuelist(DuelSide.Top,    0, 0f, botTop,    botTop    ? CowboyLook.Enemy() : CowboyLook.Player2(), botTop    ? "BOT" : "PLAYER 2", TopHalf,    Key.W),
             };
         }
 
@@ -166,14 +165,14 @@ namespace HighNoon
             // Two players share the bottom (left/right); two bots hold the top.
             return new List<Duelist>
             {
-                MakeDuelist(DuelSide.Bottom, 0, -2f, false, ColP1,    "P1",  BottomLeft,  Key.A),
-                MakeDuelist(DuelSide.Bottom, 1,  2f, false, ColP2,    "P2",  BottomRight, Key.D),
-                MakeDuelist(DuelSide.Top,    0, -2f, true,  ColEnemy, "BOT", TopLeft,     Key.None),
-                MakeDuelist(DuelSide.Top,    1,  2f, true,  ColEnemy, "BOT", TopRight,    Key.None),
+                MakeDuelist(DuelSide.Bottom, 0, -2f, false, CowboyLook.Player(),  "P1",  BottomLeft,  Key.A),
+                MakeDuelist(DuelSide.Bottom, 1,  2f, false, CowboyLook.Player2(), "P2",  BottomRight, Key.D),
+                MakeDuelist(DuelSide.Top,    0, -2f, true,  CowboyLook.Enemy(),   "BOT", TopLeft,     Key.None),
+                MakeDuelist(DuelSide.Top,    1,  2f, true,  CowboyLook.Enemy(),   "BOT", TopRight,    Key.None),
             };
         }
 
-        Duelist MakeDuelist(DuelSide side, int lane, float x, bool isBot, Color color, string label, Rect zone, Key key)
+        Duelist MakeDuelist(DuelSide side, int lane, float x, bool isBot, CowboyLook look, string label, Rect zone, Key key)
         {
             var go = new GameObject($"{side}_{lane}_Cowboy");
             float y = side == DuelSide.Bottom ? -2.6f : 2.6f;
@@ -184,7 +183,7 @@ namespace HighNoon
             sr.sortingOrder = 10;
 
             var view = go.AddComponent<DuelistView>();
-            view.Setup(sr, color, faceDown: side == DuelSide.Top);
+            view.Setup(sr, look, faceDown: side == DuelSide.Top);
 
             IDuelInput input = isBot
                 ? (IDuelInput)new BotDuelInput(botConfig)

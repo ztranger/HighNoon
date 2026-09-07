@@ -18,6 +18,7 @@ namespace HighNoon
         public string Title;
         public string Arena;
         public Difficulty Difficulty;
+        public CowboyLook Look;
         public DialogLine[] Intro;
     }
 
@@ -50,6 +51,7 @@ namespace HighNoon
                     new StageDef
                     {
                         Title = "The Drifter", Arena = "Prairie", Difficulty = Difficulty.Easy,
+                        Look = new CowboyLook { Shirt = new Color(0.55f, 0.50f, 0.35f), HatColor = new Color(0.30f, 0.24f, 0.16f), Accent = new Color(0.66f, 0.34f, 0.24f), HatType = HatStyle.Wide, Chest = Accessory.Poncho, Facial = FacialHair.Mustache },
                         Intro = new[]
                         {
                             new DialogLine(Speaker.Opponent, "Long way from anywhere, stranger."),
@@ -60,6 +62,7 @@ namespace HighNoon
                     new StageDef
                     {
                         Title = "Town Trouble", Arena = "Dusty Town", Difficulty = Difficulty.Easy,
+                        Look = new CowboyLook { Shirt = new Color(0.80f, 0.30f, 0.28f), HatColor = new Color(0.28f, 0.20f, 0.14f), Accent = new Color(0.30f, 0.20f, 0.15f), HatType = HatStyle.Cowboy, Chest = Accessory.Vest },
                         Intro = new[]
                         {
                             new DialogLine(Speaker.Opponent, "This here's my street. Turn around."),
@@ -70,6 +73,7 @@ namespace HighNoon
                     new StageDef
                     {
                         Title = "Canyon Ambush", Arena = "Red Canyon", Difficulty = Difficulty.Normal,
+                        Look = new CowboyLook { Shirt = new Color(0.38f, 0.32f, 0.28f), HatColor = new Color(0.40f, 0.30f, 0.18f), Accent = new Color(0.80f, 0.22f, 0.20f), HatType = HatStyle.Sombrero, Chest = Accessory.Bandana, Facial = FacialHair.Beard },
                         Intro = new[]
                         {
                             new DialogLine(Speaker.Opponent, "Should've watched the ridgeline, amigo."),
@@ -88,6 +92,7 @@ namespace HighNoon
                     new StageDef
                     {
                         Title = "The Undertaker", Arena = "Boot Hill", Difficulty = Difficulty.Normal,
+                        Look = new CowboyLook { Shirt = new Color(0.16f, 0.15f, 0.17f), HatColor = new Color(0.10f, 0.10f, 0.11f), Skin = new Color(0.80f, 0.75f, 0.68f), Accent = new Color(0.50f, 0.12f, 0.12f), HatType = HatStyle.Bowler, Facial = FacialHair.Beard },
                         Intro = new[]
                         {
                             new DialogLine(Speaker.Opponent, "I already dug your grave."),
@@ -97,6 +102,7 @@ namespace HighNoon
                     new StageDef
                     {
                         Title = "The Sheriff", Arena = "Salt Flats", Difficulty = Difficulty.Hard,
+                        Look = new CowboyLook { Shirt = new Color(0.40f, 0.45f, 0.60f), HatColor = new Color(0.30f, 0.22f, 0.14f), Accent = new Color(0.95f, 0.80f, 0.30f), HatType = HatStyle.Wide, Chest = Accessory.Badge, Facial = FacialHair.Mustache },
                         Intro = new[]
                         {
                             new DialogLine(Speaker.Opponent, "End of the line. I'm the law out here."),

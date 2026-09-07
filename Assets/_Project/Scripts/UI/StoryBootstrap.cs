@@ -67,7 +67,7 @@ namespace HighNoon
             Text("Title", ch.Title, 120, 300, 1040, 190, Gold, FontStyle.Bold);
             Text("Tagline", ch.Tagline, 46, 130, 940, 140, new Color(0.86f, 0.82f, 0.72f), FontStyle.Italic);
 
-            Cowboy(new Color(0.82f, 0.62f, 0.36f), new Vector2(0f, -170f), new Vector2(260f, 340f));
+            Cowboy(new Vector2(0f, -170f), new Vector2(260f, 340f));
 
             Button("Begin", "BEGIN", -560f, 560, 150, 66, Gold, () => SceneManager.LoadScene("Map"));
         }
@@ -77,7 +77,7 @@ namespace HighNoon
             Background(new Color(0.22f, 0.17f, 0.08f));
 
             Text("Title", "VICTORY", 150, 430, 1040, 220, Gold, FontStyle.Bold);
-            Cowboy(new Color(0.82f, 0.62f, 0.36f), new Vector2(0f, 70f), new Vector2(320f, 420f));
+            Cowboy(new Vector2(0f, 70f), new Vector2(320f, 420f));
             Text("Flavor", "You cleaned up the West.\nNo one draws faster.", 48, -250, 960, 200,
                 new Color(0.92f, 0.88f, 0.78f), FontStyle.Normal);
 
@@ -133,8 +133,8 @@ namespace HighNoon
             return txt;
         }
 
-        void Cowboy(Color color, Vector2 pos, Vector2 size)
-            => Prop(CowboyArt.Build(color).Idle[0], pos, size);
+        void Cowboy(Vector2 pos, Vector2 size)
+            => Prop(CowboyArt.Build(CowboyLook.Player()).Idle[0], pos, size);
 
         void Prop(Sprite sprite, Vector2 pos, Vector2 size)
         {

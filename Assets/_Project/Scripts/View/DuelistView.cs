@@ -17,11 +17,11 @@ namespace HighNoon
         Vector3 _offscreenPos;
         bool _faceDown;
 
-        public void Setup(SpriteRenderer sr, Color teamColor, bool faceDown)
+        public void Setup(SpriteRenderer sr, CowboyLook look, bool faceDown)
         {
             _sr = sr;
             _faceDown = faceDown;
-            _frames = CowboyArt.Build(teamColor);
+            _frames = CowboyArt.Build(look);
 
             _anim = gameObject.AddComponent<FrameAnimator>();
             _anim.Init(sr);
