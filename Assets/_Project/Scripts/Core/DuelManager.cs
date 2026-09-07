@@ -20,6 +20,7 @@ namespace HighNoon
         public DuelAudio Audio;
         public CameraShake Shake;
         public bool PveMode;
+        public bool SkipFirstIntro; // set when a pre-duel dialog already put the duelists on the field
         public List<Duelist> Duelists = new List<Duelist>();
 
         public DuelPhase Phase { get; private set; } = DuelPhase.Idle;
@@ -44,7 +45,7 @@ namespace HighNoon
 
             while (true)
             {
-                yield return StartCoroutine(RunRound(active, firstRound));
+                yield return StartCoroutine(RunRound(active, firstRound && !SkipFirstIntro));
                 firstRound = false;
 
                 var survivors = active.Where(d => d.Outcome == DuelOutcome.Won).ToList();
@@ -234,15 +235,20 @@ namespace HighNoon
         {
             if (playerWon)
             {
-                if (Campaign.IsLastStage)
+                if (Campaign.IsFinalStage)
                 {
                     Campaign.Active = false;
-                    Hud.ShowResult("VICTORY!\nYou cleaned up the West.", "PLAY AGAIN", RestartCampaign, "MENU", OnMenu);
+                    GoStory(StoryKind.Victory);
+                }
+                else if (Campaign.IsLastStageOfChapter)
+                {
+                    Campaign.AdvanceStage();          // into the next chapter → intro screen
+                    GoStory(StoryKind.ChapterIntro);
                 }
                 else
                 {
-                    Campaign.Stage++;
-                    Hud.ShowResult($"STAGE CLEARED!\nNext: {Campaign.Current.Title}", "NEXT", ReloadDuel, "MENU", OnMenu);
+                    Campaign.AdvanceStage();
+                    Hud.ShowResult($"STAGE CLEARED!\nNext: {Campaign.CurrentStage.Title}", "MAP", LoadMap, "MENU", OnMenu);
                 }
             }
             else
@@ -251,25 +257,24 @@ namespace HighNoon
                 if (Campaign.Lives <= 0)
                 {
                     Campaign.Active = false;
-                    Hud.ShowResult("YOU DIED\nDEFEAT", "TRY AGAIN", RestartCampaign, "MENU", OnMenu);
+                    GoStory(StoryKind.Defeat);
                 }
                 else
                 {
-                    Hud.ShowResult($"YOU DIED\nLives left: {Campaign.Lives}", "RETRY", ReloadDuel, "MENU", OnMenu);
+                    Hud.ShowResult($"YOU DIED\nLives left: {Campaign.Lives}", "RETRY", ReloadDuel, "MAP", LoadMap);
                 }
             }
         }
 
         void OnRematch() => StartDuel();
-
         void OnMenu() => UnityEngine.SceneManagement.SceneManager.LoadScene("MainMenu");
-
+        void LoadMap() => UnityEngine.SceneManagement.SceneManager.LoadScene("Map");
         void ReloadDuel() => UnityEngine.SceneManagement.SceneManager.LoadScene("Duel");
 
-        void RestartCampaign()
+        void GoStory(StoryKind kind)
         {
-            Campaign.StartRun();
-            UnityEngine.SceneManagement.SceneManager.LoadScene("Duel");
+            Story.Kind = kind;
+            UnityEngine.SceneManagement.SceneManager.LoadScene("Story");
         }
     }
 }

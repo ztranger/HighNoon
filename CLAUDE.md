@@ -12,6 +12,8 @@ Open `Assets/_Project/Scenes/MainMenu.unity` → Play. Pick players / difficulty
 ## Scenes (Build Settings order)
 - `[0] Assets/_Project/Scenes/MainMenu.unity` — `MenuBootstrap` → `MainMenuBootstrap` (code-built UI).
 - `[1] Assets/_Project/Scenes/Duel.unity` — `Bootstrap` → `DuelBootstrap` + a **Global Light2D** (required by the 2D Renderer or sprites render black).
+- `[2] Assets/_Project/Scenes/Map.unity` — `MapBootstrap` (PvE chapter map, code-built UI). Sets `MatchSettings.Mode=PvE` on load — it's the PvE hub.
+- `[3] Assets/_Project/Scenes/Story.unity` — `StoryBootstrap` (shared full-screen story beat; `Story.Kind` selects chapter-intro / victory / defeat).
 
 ## Architecture
 Code-first: each scene has ONE bootstrap component that builds the camera, background, UI, audio and gameplay objects at runtime — minimal scene wiring, easy to drive via MCP. All gameplay is in namespace `HighNoon`, default `Assembly-CSharp` (no asmdef yet).
@@ -33,8 +35,14 @@ Fires are compared by timestamp (`Time.realtimeSinceStartupAsDouble`); earliest 
 ### Arenas / locations
 Random per duel (`Arenas.Pick`, avoids immediate repeat). Six arenas: Prairie, Dusty Town, Red Canyon, Boot Hill, Green Valley, Salt Flats. Each built procedurally (noise ground + props). PvE will pin an arena per mission point via `MatchSettings.ForcedArena` — there is deliberately **no arena picker in the menu**.
 
-### PvE campaign (`Campaign`)
-Static run state (Core/`Campaign.cs`): `Stages[]` of `StageDef {Title, Arena, Difficulty}`, `Lives` (start 3, shared team lives), `Stage`. Menu PLAY in PvE mode calls `Campaign.StartRun()`; `DuelBootstrap` (PvE branch) pins the stage arena/difficulty via `Campaign.ApplyToMatch()` and builds the duel from the Players toggle — **1 player = solo 1v1** ("YOU" vs the stage bot), **2 players = 2v2** (P1+P2 vs two stage bots, reusing the lane/tiebreaker logic). A top status line (`DuelHUD.SetPveStatus`) shows stage / opponent / lives / SOLO|CO-OP. On result, `DuelManager.ShowPveResult` (player side = Bottom): **win** → advance stage (last → VICTORY) with **NEXT**; **loss** → `Lives--` (0 → DEFEAT) with **RETRY**. Buttons reload the `Duel` scene. `DuelHUD.ShowResult(message, label1, act1, label2, act2)` takes configurable buttons. TODO: a visual mission map + dialogs.
+### PvE campaign (`Campaign`) + mission map
+Static run state (Core/`Campaign.cs`), split into **chapters**: `Chapters[]` of `ChapterDef {Title, Theme, Stages[]}`; `StageDef {Title, Arena, Difficulty}`; run state = `Chapter`, `Stage` (current node in the chapter), `Lives` (start 3, shared team lives). `AdvanceStage()` steps one node and wraps to the next chapter; `IsFinalStage` guards the win screen.
+
+**Story screens:** one shared `Story` scene, driven by static `Story.Kind` (`ChapterIntro` / `Victory` / `Defeat`). Chapter intro shows "CHAPTER n/N" + title + `ChapterDef.Tagline` + BEGIN→Map; Victory/Defeat show flavor + PLAY AGAIN|TRY AGAIN (→ StartRun + ChapterIntro) and MENU.
+
+**Flow:** Menu PLAY (PvE) → `Campaign.StartRun()` → **Story (chapter intro)** → BEGIN → **Map scene** (current chapter). `MapBootstrap` draws the chapter's nodes bottom→top (cleared=green, current=gold + cowboy token + pulse, locked=gray) with path lines; tapping the **current** node loads the **Duel**. `DuelBootstrap` (PvE branch) pins the stage arena/difficulty via `Campaign.ApplyToMatch()` and builds from the Players toggle — **1 player = solo 1v1** ("YOU" vs the stage bot), **2 players = 2v2** (P1+P2 vs two stage bots, reusing lane/tiebreaker). Top status line (`DuelHUD.SetPveStatus`) shows chapter/stage/opponent/lives/SOLO|CO-OP. On result, `DuelManager.ShowPveResult` (player side = Bottom): **win mid-chapter** → result panel **MAP** (back to map); **win last stage of a chapter** → `AdvanceStage` + Story chapter-intro (next chapter); **win final stage** → Story **Victory**; **loss, lives left** → result panel **RETRY**/MAP; **loss, lives 0** → Story **Defeat**. `DuelHUD.ShowResult(message, label1, act1, label2, act2)` takes configurable buttons.
+
+**Pre-duel dialogs:** `StageDef.Intro` is a `DialogLine[]` (`Speaker` + text). Tapping a map node sets `Campaign.ShowIntro`; `DuelBootstrap` (PvE) then plays a `DialogBox` (bottom panel, speaker portrait + name + line, tap to advance) with the duelists standing on the field, and starts the duel on finish with `manager.SkipFirstIntro=true` (skips the walk-in). `ShowIntro` is consumed so a RETRY doesn't replay it. TODO: chapter-intro / victory-screen polish, more chapters.
 
 ### Bots
 Reaction is an **interval**, never a fixed time: `BotConfig.reactionMin..reactionMax`, sampled with `RollReaction()` at BANG. Difficulty (`MatchSettings.ApplyDifficulty`): Easy 0.45–0.75s, Normal 0.30–0.48s, Hard 0.18–0.30s. Bots fill empty top slots (single-player PvP now; Coop/PvE later).
@@ -49,4 +57,4 @@ Reaction is an **interval**, never a fixed time: `BotConfig.reactionMin..reactio
 - To eyeball procedural art: blit frames to a PNG contact sheet via `execute_code(safety_checks=false)` and open it.
 
 ## Roadmap
-PvP core ✅ · main menu ✅ · pixel art + frame animation ✅ · juice (shake/flash/hit-stop/tumbleweed) ✅ · 6 arenas ✅ · Coop 2v2 ✅ · PvE core loop ✅ → **PvE mission map** (visual node map; each node pins its arena) · 2-player PvE (2v2) · dialogs · balance/audio polish. Deliberately **no visible pre-BANG countdown** (tension is audio-only) and **no arena picker** (random for PvP/Coop; PvE decides per stage).
+PvP core ✅ · main menu ✅ · pixel art + frame animation ✅ · juice (shake/flash/hit-stop/tumbleweed) ✅ · 6 arenas ✅ · Coop 2v2 ✅ · PvE (solo + 2-player) ✅ · PvE chapters + visual mission map ✅ · pre-duel dialogs ✅ · chapter-intro / victory / defeat screens ✅ → **more chapters/content** · balance/audio · per-opponent sprite variety. Deliberately **no visible pre-BANG countdown** (tension is audio-only) and **no arena picker** (random for PvP/Coop; PvE decides per stage/chapter). **User handles Android builds + git commits.**

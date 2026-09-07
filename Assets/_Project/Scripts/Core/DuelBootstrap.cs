@@ -91,14 +91,34 @@ namespace HighNoon
             if (pve)
             {
                 string tag = MatchSettings.Players == PvPPlayers.TwoPlayers ? "CO-OP" : "SOLO";
-                hud.SetPveStatus($"STAGE {Campaign.Stage + 1}/{Campaign.Stages.Length}   ·   {Campaign.Current.Title}   ·   LIVES {Campaign.Lives}   ·   {tag}");
+                hud.SetPveStatus($"CH{Campaign.Chapter + 1} · {Campaign.Stage + 1}/{Campaign.CurrentChapter.Stages.Length}   ·   {Campaign.CurrentStage.Title}   ·   LIVES {Campaign.Lives}   ·   {tag}");
             }
-            manager.StartDuel();
+
+            var stage = pve ? Campaign.CurrentStage : null;
+            bool playIntro = pve && Campaign.ShowIntro && stage.Intro != null && stage.Intro.Length > 0;
+            Campaign.ShowIntro = false; // consume — a RETRY of the same stage won't replay the banter
+
+            if (playIntro)
+            {
+                // Duelists already stand on the field; talk first, then StartDuel skips the walk-in.
+                manager.SkipFirstIntro = true;
+                foreach (var d in duelists) d.View.Stance();
+                var dialog = new GameObject("Dialog").AddComponent<DialogBox>();
+                dialog.Setup();
+                dialog.Play(stage.Intro,
+                    "YOU", ColP1, CowboyArt.Build(ColP1).Idle[0],
+                    stage.Title, ColEnemy, CowboyArt.Build(ColEnemy).Idle[0],
+                    manager.StartDuel);
+            }
+            else
+            {
+                manager.StartDuel();
+            }
         }
 
         List<Duelist> BuildPve()
         {
-            string opponent = Campaign.Current.Title;
+            string opponent = Campaign.CurrentStage.Title;
 
             // Two players share the bottom; two bots (the stage opponents) hold the top.
             if (MatchSettings.Players == PvPPlayers.TwoPlayers)

@@ -80,8 +80,16 @@ namespace HighNoon
             var play = MakeButton(transform, "Play", "PLAY", new Vector2(0.5f, 0.15f), Vector2.zero, 620, 170, 72, Gold, out _, true);
             play.onClick.AddListener(() =>
             {
-                if (MatchSettings.Mode == GameMode.PvE) Campaign.StartRun();
-                SceneManager.LoadScene("Duel");
+                if (MatchSettings.Mode == GameMode.PvE)
+                {
+                    Campaign.StartRun();
+                    Story.Kind = StoryKind.ChapterIntro;
+                    SceneManager.LoadScene("Story");
+                }
+                else
+                {
+                    SceneManager.LoadScene("Duel");
+                }
             });
         }
 
