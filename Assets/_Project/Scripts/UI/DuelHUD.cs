@@ -13,6 +13,7 @@ namespace HighNoon
     public class DuelHUD : MonoBehaviour
     {
         Font _font;
+        Image _flash;
         Text _bangText;
         Text _bottomReaction, _topReaction;
         GameObject _resultPanel;
@@ -31,6 +32,16 @@ namespace HighNoon
             scaler.referenceResolution = new Vector2(1080, 1920);
             scaler.matchWidthOrHeight = 0.5f;
             gameObject.AddComponent<GraphicRaycaster>();
+
+            // Full-screen flash overlay (behind text/panels, above the world sprites).
+            var flashGo = new GameObject("Flash");
+            flashGo.transform.SetParent(transform, false);
+            var frt = flashGo.AddComponent<RectTransform>();
+            frt.anchorMin = Vector2.zero; frt.anchorMax = Vector2.one;
+            frt.offsetMin = Vector2.zero; frt.offsetMax = Vector2.zero;
+            _flash = flashGo.AddComponent<Image>();
+            _flash.color = new Color(1f, 1f, 1f, 0f);
+            _flash.raycastTarget = false;
 
             _bangText = MakeText(transform, "BangText", 240, new Vector2(0.5f, 0.5f), Vector2.zero, 1000, 400);
             _bangText.text = "BANG!";
@@ -117,8 +128,27 @@ namespace HighNoon
         public void ShowBang()
         {
             _bangText.gameObject.SetActive(true);
-            StopAllCoroutines();
             StartCoroutine(BangPop());
+        }
+
+        /// <summary>Full-screen colour flash that fades out (unscaled, survives hit-stop).</summary>
+        public void Flash(Color color, float duration)
+        {
+            if (_flash == null) return;
+            StartCoroutine(FlashRoutine(color, duration));
+        }
+
+        IEnumerator FlashRoutine(Color color, float duration)
+        {
+            float t = 0f;
+            while (t < duration)
+            {
+                t += Time.unscaledDeltaTime;
+                float a = Mathf.Lerp(color.a, 0f, t / duration);
+                _flash.color = new Color(color.r, color.g, color.b, a);
+                yield return null;
+            }
+            _flash.color = new Color(color.r, color.g, color.b, 0f);
         }
 
         IEnumerator BangPop()
