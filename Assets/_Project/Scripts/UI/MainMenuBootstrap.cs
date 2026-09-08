@@ -296,17 +296,7 @@ namespace HighNoon
             if (_weaponTabName != null) _weaponTabName.text = w.Name;
             if (_weaponSetupName != null) _weaponSetupName.text = "WEAPON: " + w.Name;
             if (_weaponIcon != null)
-            {
-                // Tint the shared revolver icon a little per weapon so each pick reads differently.
-                Color[] tints = {
-                    new Color(0.46f, 0.49f, 0.56f), // revolver — gunmetal
-                    new Color(0.60f, 0.55f, 0.36f), // desert eagle — brass
-                    new Color(0.40f, 0.34f, 0.30f), // shotgun — dark steel
-                    new Color(0.52f, 0.56f, 0.62f), // sniper — pale steel
-                    new Color(0.55f, 0.45f, 0.60f), // steampunk — coppery violet
-                };
-                _weaponIcon.sprite = WeaponArt.Revolver(tints[Mathf.Clamp(GameSettings.SelectedWeapon, 0, tints.Length - 1)]);
-            }
+                _weaponIcon.sprite = WeaponArt.For(GameSettings.SelectedWeapon); // distinct silhouette per weapon
         }
 
         void RefreshHighlights()
