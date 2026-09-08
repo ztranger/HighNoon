@@ -17,6 +17,7 @@ namespace HighNoon
         static readonly Color Btn  = new Color(0.78f, 0.58f, 0.22f);
 
         Font _font;
+        AudioSource _music; // victory/defeat stings play here so they stop when this scene unloads
 
         void Start()
         {
@@ -28,6 +29,9 @@ namespace HighNoon
             SetupCamera();
             SetupEventSystem();
             BuildCanvas();
+
+            _music = gameObject.AddComponent<AudioSource>();
+            _music.playOnAwake = false;
 
             switch (Story.Kind)
             {
@@ -75,6 +79,8 @@ namespace HighNoon
         void BuildVictory()
         {
             Background(new Color(0.22f, 0.17f, 0.08f));
+            _music.PlayOneShot(AudioBank.GetRandom("victory", ProcAudio.Victory), 0.9f * GameSettings.SfxVolume);
+            Haptics.Success();
 
             Text("Title", "VICTORY", 150, 430, 1040, 220, Gold, FontStyle.Bold);
             Cowboy(new Vector2(0f, 70f), new Vector2(320f, 420f));
@@ -88,6 +94,8 @@ namespace HighNoon
         void BuildDefeat()
         {
             Background(new Color(0.12f, 0.11f, 0.11f));
+            _music.PlayOneShot(AudioBank.GetRandom("defeat", ProcAudio.Defeat), 0.9f * GameSettings.SfxVolume);
+            Haptics.Heavy();
 
             Text("Title", "DEFEAT", 150, 430, 1040, 220, Red, FontStyle.Bold);
             Prop(PropArt.Tombstone(), new Vector2(0f, 70f), new Vector2(280f, 360f));
@@ -158,6 +166,7 @@ namespace HighNoon
             img.color = color;
             var btn = rt.gameObject.AddComponent<Button>();
             btn.targetGraphic = img;
+            btn.onClick.AddListener(() => { Sfx.Click(); Haptics.Light(); });
             btn.onClick.AddListener(() => onClick());
             var t = Text(name + "Label", label, fontSize, 0f, w, h, new Color(0.15f, 0.10f, 0.06f), FontStyle.Bold);
             t.transform.SetParent(rt, false);
@@ -176,6 +185,7 @@ namespace HighNoon
             cam.transform.position = new Vector3(0f, 0f, -10f);
             cam.clearFlags = CameraClearFlags.SolidColor;
             cam.backgroundColor = new Color(0.1f, 0.09f, 0.08f);
+            AppInit.EnsureAudioListener(cam);
         }
 
         void SetupEventSystem()

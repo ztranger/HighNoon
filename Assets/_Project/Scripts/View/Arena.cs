@@ -78,6 +78,51 @@ namespace HighNoon
                 Divider = new Color(0f, 0f, 0f, 0.08f),
                 CameraFill = new Color(0.86f, 0.84f, 0.74f),
             },
+            new ArenaDef
+            {
+                Name = "Painted Hills", Style = ArenaStyle.Prairie,
+                GroundBase = new Color(0.88f, 0.62f, 0.44f),
+                GroundShade = new Color(0.78f, 0.48f, 0.40f),
+                Speck = new Color(0.62f, 0.36f, 0.34f),
+                Divider = new Color(0f, 0f, 0f, 0.12f),
+                CameraFill = new Color(0.90f, 0.66f, 0.48f),
+            },
+            new ArenaDef
+            {
+                Name = "Ghost Town", Style = ArenaStyle.Town,
+                GroundBase = new Color(0.58f, 0.54f, 0.50f),
+                GroundShade = new Color(0.47f, 0.44f, 0.40f),
+                Speck = new Color(0.35f, 0.33f, 0.30f),
+                Divider = new Color(0.26f, 0.24f, 0.22f, 0.55f),
+                CameraFill = new Color(0.56f, 0.53f, 0.50f),
+            },
+            new ArenaDef
+            {
+                Name = "Midnight Mesa", Style = ArenaStyle.Desert,
+                GroundBase = new Color(0.28f, 0.30f, 0.44f),
+                GroundShade = new Color(0.19f, 0.21f, 0.34f),
+                Speck = new Color(0.13f, 0.14f, 0.24f),
+                Divider = new Color(0f, 0f, 0f, 0.22f),
+                CameraFill = new Color(0.22f, 0.24f, 0.38f),
+            },
+            new ArenaDef
+            {
+                Name = "Gallows Hill", Style = ArenaStyle.Graveyard,
+                GroundBase = new Color(0.37f, 0.39f, 0.37f),
+                GroundShade = new Color(0.28f, 0.30f, 0.29f),
+                Speck = new Color(0.19f, 0.21f, 0.20f),
+                Divider = new Color(0f, 0f, 0f, 0.28f),
+                CameraFill = new Color(0.34f, 0.36f, 0.35f),
+            },
+            new ArenaDef
+            {
+                Name = "Devil's Crossroads", Style = ArenaStyle.Desert,
+                GroundBase = new Color(0.44f, 0.23f, 0.20f),
+                GroundShade = new Color(0.31f, 0.15f, 0.14f),
+                Speck = new Color(0.21f, 0.10f, 0.10f),
+                Divider = new Color(0f, 0f, 0f, 0.32f),
+                CameraFill = new Color(0.36f, 0.19f, 0.17f),
+            },
         };
 
         static int _last = -1;

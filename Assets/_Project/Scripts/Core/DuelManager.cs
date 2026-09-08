@@ -20,6 +20,7 @@ namespace HighNoon
         public DuelAudio Audio;
         public CameraShake Shake;
         public bool PveMode;
+        public DuelType Type = DuelType.Reaction; // Reaction (quick-draw) or Timing (sweet-spot bar)
         public bool SkipFirstIntro; // set when a pre-duel dialog already put the duelists on the field
         public List<Duelist> Duelists = new List<Duelist>();
 
@@ -31,7 +32,7 @@ namespace HighNoon
         {
             StopAllCoroutines();
             Time.timeScale = 1f;
-            StartCoroutine(RunMatch());
+            StartCoroutine(Type == DuelType.Timing ? RunTimingMatch() : RunMatch());
         }
 
         IEnumerator RunMatch()
@@ -87,70 +88,101 @@ namespace HighNoon
             Audio.StartTension();
             if (Random.value < 0.75f) Tumbleweed.Spawn();
 
-            float tension = Config.RollTension();
-            float e = 0f;
-            while (e < tension)
-            {
-                e += Time.deltaTime;
-                TickInputs(active, Time.realtimeSinceStartupAsDouble);
-                FireFxForNew(active); // instant feedback even on an early (false-start) tap
-                yield return null;
-            }
-
-            Phase = DuelPhase.Bang;
-            _bangTime = Time.realtimeSinceStartupAsDouble;
-            foreach (var d in active) d.Input.OnBang(_bangTime);
-            Audio.Bang();
-            Hud.ShowBang();
-            Shake?.Shake(0.10f, 0.12f);
-            Hud.Flash(new Color(1f, 1f, 1f, 0.45f), 0.14f);
-
-            // Anyone who tapped before BANG jumped the gun.
-            foreach (var d in active)
-                d.FalseStarted = d.Input.HasFired && d.Input.FireTimeRealtime < _bangTime;
-
+            _bangTime = 0;
             var lanes = active.Select(d => d.Lane).Distinct().ToList();
             var resolved = new HashSet<int>();
 
-            // A false start settles its lane at once: the jumper loses, the other survives.
-            foreach (var lane in lanes)
+            // Tension: any tap now is a FALSE START — that lane is settled AT ONCE (jumper loses),
+            // no waiting for the hidden timer to finish.
+            float tension = Config.RollTension();
+            float e = 0f;
+            while (e < tension && resolved.Count < lanes.Count)
             {
-                var g = active.Where(d => d.Lane == lane).ToList();
-                if (g.Any(d => d.FalseStarted))
-                {
-                    ResolveLaneInstant(g, g.FirstOrDefault(d => !d.FalseStarted));
-                    resolved.Add(lane);
-                }
-            }
-
-            // Each remaining lane resolves the INSTANT its first valid (post-BANG) shot lands —
-            // the shooter wins and the opponent is dead before they draw (they never fire).
-            const float maxWindow = 1.5f;
-            float w = 0f;
-            while (resolved.Count < lanes.Count && w < maxWindow)
-            {
-                w += Time.deltaTime;
-                double now = Time.realtimeSinceStartupAsDouble;
-                TickInputs(active, now);
-                FireFxForNew(active); // the instant you tap, your gun fires
+                e += Time.deltaTime;
+                TickInputs(active, Time.realtimeSinceStartupAsDouble);
                 foreach (var lane in lanes)
                 {
                     if (resolved.Contains(lane)) continue;
                     var g = active.Where(d => d.Lane == lane).ToList();
-                    Duelist winner = null;
-                    double best = double.MaxValue;
-                    foreach (var d in g)
-                        if (d.Input.HasFired && d.Input.FireTimeRealtime >= _bangTime && d.Input.FireTimeRealtime < best)
-                        { best = d.Input.FireTimeRealtime; winner = d; }
-                    if (winner != null) { ResolveLaneInstant(g, winner); resolved.Add(lane); }
+                    if (g.Any(d => d.Input.HasFired))
+                    {
+                        foreach (var d in g) d.FalseStarted = d.Input.HasFired; // the jumper(s)
+                        DecideLane(g, g.FirstOrDefault(d => !d.Input.HasFired)); // the one who held survives
+                        resolved.Add(lane);
+                    }
                 }
                 yield return null;
             }
+            Audio.StopTension();
 
-            // Timed out: nobody in the lane drew in time — both are too slow (no survivor).
-            foreach (var lane in lanes)
-                if (!resolved.Contains(lane))
-                    ResolveLaneInstant(active.Where(d => d.Lane == lane).ToList(), null);
+            // BANG — only if a lane is still live.
+            if (resolved.Count < lanes.Count)
+            {
+                Phase = DuelPhase.Bang;
+                _bangTime = Time.realtimeSinceStartupAsDouble;
+                foreach (var d in active) d.Input.OnBang(_bangTime);
+                Audio.Bang();
+                Hud.ShowBang();
+                Shake?.Shake(0.10f, 0.12f);
+                Hud.Flash(new Color(1f, 1f, 1f, 0.45f), 0.14f);
+
+                // A lane is DECIDED the instant its first valid shot lands — the shooter wins and the
+                // opponent drops at once (they never shoot). We then keep listening a short grace so
+                // the slower player's OWN tap time is still captured and shown.
+                const float maxWindow = 2f;
+                const float graceAfterDecided = 0.6f;
+                float w = 0f, grace = -1f;
+                while (w < maxWindow)
+                {
+                    w += Time.deltaTime;
+                    double now = Time.realtimeSinceStartupAsDouble;
+                    TickInputs(active, now);
+                    FireFxForNew(active); // the instant you tap, your gun fires
+
+                    foreach (var lane in lanes)
+                    {
+                        if (resolved.Contains(lane)) continue;
+                        var g = active.Where(d => d.Lane == lane).ToList();
+                        Duelist winner = null;
+                        double best = double.MaxValue;
+                        foreach (var d in g)
+                            if (d.Input.HasFired && d.Input.FireTimeRealtime >= _bangTime && d.Input.FireTimeRealtime < best)
+                            { best = d.Input.FireTimeRealtime; winner = d; }
+                        if (winner != null) { DecideLane(g, winner); resolved.Add(lane); }
+                    }
+
+                    if (resolved.Count == lanes.Count)
+                    {
+                        if (grace < 0f) grace = graceAfterDecided;
+                        grace -= Time.deltaTime;
+                        if (grace <= 0f || active.All(d => d.Input.HasFired)) break; // loser's time captured (or they gave up)
+                    }
+                    yield return null;
+                }
+
+                // Timed out: any undecided lane — nobody drew (no survivor).
+                foreach (var lane in lanes)
+                    if (!resolved.Contains(lane))
+                        DecideLane(active.Where(d => d.Lane == lane).ToList(), null);
+            }
+
+            // Finalize: compute each reaction time and show every popup — the winner's AND the
+            // slower player's own time (captured during the grace window) both appear now.
+            bool newRecord = false;
+            foreach (var d in active)
+            {
+                d.ReactionSeconds = (!d.FalseStarted && _bangTime > 0 && d.Input.HasFired && d.Input.FireTimeRealtime >= _bangTime)
+                    ? d.Input.FireTimeRealtime - _bangTime
+                    : -1;
+                Vector3 wp = d.View.transform.position + Vector3.up * (d.Side == DuelSide.Bottom ? 1.6f : -1.6f);
+                Hud.ShowReactionAt(wp, ReactionText(d), ReactionColor(d));
+
+                // A human's winning quick-draw counts toward the fastest-reaction record.
+                if (d.Kind == DuelistKind.Human && d.Outcome == DuelOutcome.Won && d.ReactionSeconds > 0
+                    && Records.ReportReaction((float)d.ReactionSeconds * 1000f))
+                    newRecord = true;
+            }
+            if (newRecord) Hud.ShowBanner("NEW BEST DRAW!", new Color(1f, 0.85f, 0.3f));
 
             Phase = DuelPhase.Resolved;
             yield return StartCoroutine(ShowRoundResults(active));
@@ -169,24 +201,22 @@ namespace HighNoon
                 {
                     d.ShotFx = true;
                     d.View.PlayShoot();
-                    Audio.Gunshot();
+                    Audio.Gunshot(d.Weapon);
+                    Haptics.Light();
                     Shake?.Shake(0.12f, 0.10f);
                 }
         }
 
         /// <summary>
-        /// Settles one lane immediately: <paramref name="winner"/> survives; everyone else is
-        /// out — they fall now and are blocked from firing (the loser never gets a shot off).
+        /// Settles one lane: <paramref name="winner"/> survives; everyone else drops at once
+        /// (visual death, blocked from firing). Reaction times + popups are shown later in the
+        /// finalize step, so the slower player's own tap time can still be captured first.
         /// </summary>
-        void ResolveLaneInstant(List<Duelist> group, Duelist winner)
+        void DecideLane(List<Duelist> group, Duelist winner)
         {
             bool anyDeath = false;
             foreach (var d in group)
             {
-                d.ReactionSeconds = (d.Input.HasFired && d.Input.FireTimeRealtime >= _bangTime)
-                    ? d.Input.FireTimeRealtime - _bangTime
-                    : -1;
-
                 if (d == winner)
                 {
                     d.Outcome = DuelOutcome.Won;
@@ -194,14 +224,15 @@ namespace HighNoon
                 else
                 {
                     d.Outcome = d.FalseStarted ? DuelOutcome.FalseStart : DuelOutcome.Lost;
-                    d.ShotFx = true;     // the loser is out — no shoot FX for them
-                    d.View.PlayDeath();  // and they drop the instant the winner fires
+                    d.ShotFx = true;     // out — no shoot FX
+                    d.View.PlayDeath();  // drops the instant the lane is decided
                     anyDeath = true;
                 }
             }
             if (anyDeath)
             {
                 Audio.Death();
+                Haptics.Heavy();
                 Shake?.Shake(0.22f, 0.22f);
                 Hud.Flash(new Color(1f, 0.92f, 0.82f, 0.30f), 0.10f);
             }
@@ -209,19 +240,281 @@ namespace HighNoon
 
         IEnumerator ShowRoundResults(List<Duelist> active)
         {
-            // Per-duelist reaction popup, above each cowboy (captured before death anims move them).
-            foreach (var d in active)
-            {
-                Vector3 wp = d.View.transform.position + Vector3.up * (d.Side == DuelSide.Bottom ? 1.6f : -1.6f);
-                Hud.ShowReactionAt(wp, ReactionText(d), ReactionColor(d));
-            }
-
-            // Shots + deaths already played the instant each lane resolved — just a beat, then buttons.
+            // Shots, deaths and verdict popups already played the instant each lane resolved.
             Time.timeScale = 0f;
             yield return new WaitForSecondsRealtime(0.08f);
             Time.timeScale = 1f;
 
             yield return new WaitForSeconds(Config.resultDelay);
+        }
+
+        // ===================== Timing duel (sweet-spot bar) =====================
+
+        /// <summary>
+        /// Timing match: each duelist locks a sweeping pointer, trying to land on the green zone.
+        /// PvE = hit green or the opponent shoots you (one round, team must all hit). PvP/Coop =
+        /// whoever stops closest to the green centre wins their lane (reuses the tie-break loop).
+        /// </summary>
+        IEnumerator RunTimingMatch()
+        {
+            foreach (var d in Duelists) d.ResetRound();
+            var active = new List<Duelist>(Duelists);
+
+            if (PveMode)
+            {
+                yield return StartCoroutine(RunTimingRound(active, !SkipFirstIntro, pve: true));
+                var humans = active.Where(d => d.Kind == DuelistKind.Human).ToList();
+                bool playerWon = humans.Count > 0 && humans.All(h => h.AimHit);
+                Phase = DuelPhase.Result;
+                ShowPveResult(playerWon);
+                yield break;
+            }
+
+            bool firstRound = true;
+            DuelSide? winningSide = null;
+            bool draw = false;
+            while (true)
+            {
+                yield return StartCoroutine(RunTimingRound(active, firstRound && !SkipFirstIntro, pve: false));
+                firstRound = false;
+
+                var survivors = active.Where(d => d.Outcome == DuelOutcome.Won).ToList();
+                if (survivors.Count == 0) { draw = true; break; }
+                var sides = new HashSet<DuelSide>(survivors.Select(s => s.Side));
+                if (sides.Count == 1) { winningSide = survivors[0].Side; break; }
+
+                active = survivors;
+                foreach (var d in active) d.Lane = 0;
+                yield return new WaitForSeconds(0.6f);
+            }
+
+            Phase = DuelPhase.Result;
+            ShowFinal(active, winningSide, draw);
+        }
+
+        IEnumerator RunTimingRound(List<Duelist> active, bool doIntro, bool pve)
+        {
+            Hud.HideAll();
+            foreach (var d in active) d.ResetRound();
+
+            Phase = DuelPhase.Intro;
+            if (doIntro)
+            {
+                foreach (var d in active) d.View.SetIdleOffscreen();
+                yield return null;
+                foreach (var d in active) StartCoroutine(d.View.WalkIn(Config.introDuration));
+                yield return new WaitForSeconds(Config.introDuration);
+            }
+
+            Phase = DuelPhase.Stance;
+            foreach (var d in active) d.View.Stance();
+            yield return new WaitForSeconds(Config.stancePause);
+
+            // --- Build the bars. Humans always aim; bots only get a (self-aiming) bar in PvP/Coop. ---
+            TimingTuning(out float greenHalf, out float sweepSpeed);
+            var bars = new Dictionary<Duelist, TimingBar>();
+            var botTargetX = new Dictionary<Duelist, float>();
+            var botLockTime = new Dictionary<Duelist, float>();
+
+            var barers = active.Where(d => d.Kind == DuelistKind.Human || !pve).ToList();
+            var bottom = barers.Where(d => d.Side == DuelSide.Bottom).OrderBy(d => d.Lane).ToList();
+            var top = barers.Where(d => d.Side == DuelSide.Top).OrderBy(d => d.Lane).ToList();
+
+            foreach (var d in barers)
+            {
+                var list = d.Side == DuelSide.Bottom ? bottom : top;
+                Vector2 pos = BarPosition(d.Side, list.IndexOf(d), list.Count);
+                float gc = Random.Range(greenHalf + 0.08f, 1f - greenHalf - 0.08f);
+                var bar = Hud.AddTimingBar(d.Side == DuelSide.Top, pos, 880f, 84f, gc, greenHalf, d.Label);
+                bars[d] = bar;
+
+                if (d.Kind == DuelistKind.Bot)
+                {
+                    float err = BotAimError(greenHalf);
+                    float sign = Random.value < 0.5f ? -1f : 1f;
+                    botTargetX[d] = Mathf.Clamp01(gc + sign * err);
+                    botLockTime[d] = Random.Range(0.5f, 2.2f);
+                }
+            }
+
+            foreach (var d in active) if (d.Kind == DuelistKind.Human) d.Input.Arm();
+            Audio.StartTension();
+
+            Phase = DuelPhase.Tension;
+            const float maxAim = 8f;
+            float t = 0f;
+            while (t < maxAim)
+            {
+                t += Time.deltaTime;
+                float sweepX = Mathf.PingPong(t * sweepSpeed, 1f);
+                double now = Time.realtimeSinceStartupAsDouble;
+
+                foreach (var kv in bars)
+                {
+                    var d = kv.Key; var bar = kv.Value;
+                    if (bar.Locked) continue;
+                    if (d.Kind == DuelistKind.Human)
+                    {
+                        d.Input.Tick(now);
+                        if (d.Input.HasFired) { bar.Lock(sweepX); PlayShootFx(d); }
+                        else bar.SetSweepX(sweepX);
+                    }
+                    else if (t >= botLockTime[d]) { bar.Lock(botTargetX[d]); PlayShootFx(d); }
+                    else bar.SetSweepX(sweepX);
+                }
+
+                if (bars.Values.All(b => b.Locked)) break;
+                yield return null;
+            }
+            Audio.StopTension();
+
+            // A human who never tapped hesitated → force an obvious miss (they get shot).
+            foreach (var kv in bars)
+            {
+                var bar = kv.Value;
+                if (bar.Locked) continue;
+                float miss = bar.GreenCenter > 0.5f
+                    ? Mathf.Clamp01(bar.GreenCenter - (bar.GreenHalf + 0.15f))
+                    : Mathf.Clamp01(bar.GreenCenter + (bar.GreenHalf + 0.15f));
+                bar.Lock(miss);
+            }
+            foreach (var kv in bars)
+            {
+                kv.Key.AimHit = kv.Value.IsHit(kv.Value.LockedX);
+                kv.Key.AimError = kv.Value.Error(kv.Value.LockedX);
+            }
+
+            yield return new WaitForSeconds(0.35f); // let players read where the pointer stopped
+
+            if (pve) ResolveTimingPve(active);
+            else ResolveTimingContest(active);
+
+            bool newAim = false;
+            foreach (var kv in bars)
+            {
+                var d = kv.Key; var bar = kv.Value;
+                Vector3 wp = d.View.transform.position + Vector3.up * (d.Side == DuelSide.Bottom ? 1.6f : -1.6f);
+                bool hit = bar.IsHit(bar.LockedX);
+                bool perfect = hit && bar.Error(bar.LockedX) <= bar.GreenHalf * 0.28f;
+                string text = !hit ? "MISS" : perfect ? "PERFECT!" : "HIT";
+                Color col = !hit ? new Color(1f, 0.5f, 0.5f)
+                          : perfect ? new Color(1f, 0.9f, 0.35f)
+                          : new Color(0.3f, 1f, 0.3f);
+                Hud.ShowReactionAt(wp, text, col);
+
+                // A human's green hit counts toward the best-accuracy record (1 = dead centre).
+                if (d.Kind == DuelistKind.Human && hit
+                    && Records.ReportAccuracy(1f - bar.Error(bar.LockedX)))
+                    newAim = true;
+            }
+            if (newAim) Hud.ShowBanner("NEW BEST AIM!", new Color(1f, 0.85f, 0.3f));
+
+            Phase = DuelPhase.Resolved;
+            yield return StartCoroutine(ShowRoundResults(active));
+        }
+
+        /// <summary>PvE: the team must all land green. Otherwise the opponent(s) shoot the players.</summary>
+        void ResolveTimingPve(List<Duelist> active)
+        {
+            var humans = active.Where(d => d.Kind == DuelistKind.Human).ToList();
+            var bots = active.Where(d => d.Kind == DuelistKind.Bot).ToList();
+            bool allHit = humans.Count > 0 && humans.All(h => h.AimHit);
+
+            if (allHit)
+            {
+                foreach (var h in humans) h.Outcome = DuelOutcome.Won;
+                foreach (var b in bots) { b.Outcome = DuelOutcome.Lost; b.View.PlayDeath(); }
+            }
+            else
+            {
+                foreach (var b in bots) PlayShootFx(b);       // the opponent draws on the fumble
+                foreach (var h in humans)
+                {
+                    h.Outcome = h.AimHit ? DuelOutcome.Won : DuelOutcome.Lost;
+                    if (!h.AimHit) h.View.PlayDeath();
+                }
+            }
+            DeathFx();
+        }
+
+        /// <summary>PvP/Coop: each lane goes to whoever stopped closest to the green centre.</summary>
+        void ResolveTimingContest(List<Duelist> active)
+        {
+            var lanes = active.Select(d => d.Lane).Distinct().ToList();
+            bool anyDeath = false;
+            foreach (var lane in lanes)
+            {
+                var g = active.Where(d => d.Lane == lane).ToList();
+                Duelist winner = null;
+                float best = float.MaxValue;
+                bool tie = false;
+                foreach (var d in g)
+                {
+                    if (d.AimError < best - 0.0001f) { best = d.AimError; winner = d; tie = false; }
+                    else if (Mathf.Abs(d.AimError - best) <= 0.0001f) tie = true;
+                }
+                if (tie) winner = null; // dead heat → nobody survives this lane
+
+                foreach (var d in g)
+                {
+                    if (d == winner) { d.Outcome = DuelOutcome.Won; }
+                    else { d.Outcome = DuelOutcome.Lost; d.View.PlayDeath(); anyDeath = true; }
+                }
+            }
+            if (anyDeath) DeathFx();
+        }
+
+        /// <summary>Immediate shoot flash + gunshot for one duelist (timing lock).</summary>
+        void PlayShootFx(Duelist d)
+        {
+            if (d.ShotFx) return;
+            d.ShotFx = true;
+            d.View.PlayShoot();
+            Audio.Gunshot(d.Weapon);
+            Haptics.Light();
+            Shake?.Shake(0.12f, 0.10f);
+        }
+
+        void DeathFx()
+        {
+            Audio.Death();
+            Haptics.Heavy();
+            Shake?.Shake(0.22f, 0.22f);
+            Hud.Flash(new Color(1f, 0.92f, 0.82f, 0.30f), 0.10f);
+        }
+
+        /// <summary>Screen-space anchored position (reference 1080×1920) for a bar on the given side.</summary>
+        static Vector2 BarPosition(DuelSide side, int index, int count)
+        {
+            float sign = side == DuelSide.Bottom ? -1f : 1f;
+            if (count <= 1) return new Vector2(0f, sign * 430f);
+            // Two bars share a half (Coop) — stack them.
+            float y = index == 0 ? 560f : 300f;
+            return new Vector2(0f, sign * y);
+        }
+
+        static void TimingTuning(out float greenHalf, out float sweepSpeed)
+        {
+            switch (MatchSettings.BotDifficulty)
+            {
+                case Difficulty.Easy:   greenHalf = 0.130f; sweepSpeed = 0.75f; break;
+                case Difficulty.Hard:   greenHalf = 0.055f; sweepSpeed = 1.40f; break;
+                default:                greenHalf = 0.085f; sweepSpeed = 1.00f; break;
+            }
+        }
+
+        /// <summary>A bot's distance-from-centre when it self-aims, banded by difficulty.</summary>
+        static float BotAimError(float greenHalf)
+        {
+            switch (MatchSettings.BotDifficulty)
+            {
+                case Difficulty.Easy:
+                    return Random.value < 0.45f ? Random.Range(0f, greenHalf) : Random.Range(greenHalf, greenHalf + 0.18f);
+                case Difficulty.Hard:
+                    return Random.value < 0.85f ? Random.Range(0f, greenHalf * 0.7f) : Random.Range(greenHalf, greenHalf + 0.08f);
+                default:
+                    return Random.value < 0.65f ? Random.Range(0f, greenHalf) : Random.Range(greenHalf, greenHalf + 0.12f);
+            }
         }
 
         static string ReactionText(Duelist d)
@@ -270,26 +563,26 @@ namespace HighNoon
             {
                 if (Campaign.IsFinalStage)
                 {
-                    Campaign.Active = false;
+                    Campaign.EndRun(victory: true);   // clears the save + counts a completion
                     GoStory(StoryKind.Victory);
                 }
                 else if (Campaign.IsLastStageOfChapter)
                 {
-                    Campaign.AdvanceStage();          // into the next chapter → intro screen
+                    Campaign.AdvanceStage();          // into the next chapter → intro screen (persists)
                     GoStory(StoryKind.ChapterIntro);
                 }
                 else
                 {
-                    Campaign.AdvanceStage();
+                    Campaign.AdvanceStage();          // persists progress
                     Hud.ShowResult($"STAGE CLEARED!\nNext: {Campaign.CurrentStage.Title}", "MAP", LoadMap, "MENU", OnMenu);
                 }
             }
             else
             {
-                Campaign.Lives--;
+                Campaign.LoseLife();                  // persists
                 if (Campaign.Lives <= 0)
                 {
-                    Campaign.Active = false;
+                    Campaign.EndRun(victory: false);
                     GoStory(StoryKind.Defeat);
                 }
                 else

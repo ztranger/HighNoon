@@ -15,6 +15,10 @@ namespace HighNoon
         public static PvPPlayers Players = PvPPlayers.OnePlayer;
         public static Difficulty BotDifficulty = Difficulty.Normal;
 
+        /// <summary>Reaction (quick-draw) vs Timing (sweet-spot bar). Menu sets it for PvP/Coop;
+        /// the PvE campaign overrides it per stage in <see cref="Campaign.ApplyToMatch"/>.</summary>
+        public static DuelType Type = DuelType.Reaction;
+
         /// <summary>Arena name to force, or null for a random arena each duel. The menu can set this later.</summary>
         public static string ForcedArena = null;
 

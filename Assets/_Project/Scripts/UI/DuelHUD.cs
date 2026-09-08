@@ -17,6 +17,7 @@ namespace HighNoon
         Image _flash;
         Text _bangText;
         readonly List<GameObject> _reactions = new List<GameObject>();
+        readonly List<TimingBar> _timingBars = new List<TimingBar>();
         GameObject _resultPanel;
         Text _resultText;
         Text _pveStatus;
@@ -78,6 +79,7 @@ namespace HighNoon
             txt.color = Color.white;
             txt.horizontalOverflow = HorizontalWrapMode.Overflow;
             txt.verticalOverflow = VerticalWrapMode.Overflow;
+            txt.raycastTarget = false; // decorative labels/popups must never block the result buttons under them
             return txt;
         }
 
@@ -117,6 +119,7 @@ namespace HighNoon
             img.color = new Color(0.78f, 0.58f, 0.22f);
             var btn = go.AddComponent<Button>();
             btn.targetGraphic = img;
+            btn.onClick.AddListener(() => { Sfx.Click(); Haptics.Light(); });
             var t = MakeText(go.transform, "Label", 50, new Vector2(0.5f, 0.5f), Vector2.zero, 420, 110);
             t.text = label;
             t.color = Color.black;
@@ -128,7 +131,19 @@ namespace HighNoon
             _bangText.gameObject.SetActive(false);
             foreach (var r in _reactions) if (r != null) Destroy(r);
             _reactions.Clear();
+            foreach (var b in _timingBars) if (b != null) Destroy(b.gameObject);
+            _timingBars.Clear();
             _resultPanel.SetActive(false);
+        }
+
+        /// <summary>Build a sweet-spot timing bar on the HUD (Timing duel). Cleared by HideAll.</summary>
+        public TimingBar AddTimingBar(bool topSide, Vector2 anchoredPos, float width, float height,
+                                      float greenCenter, float greenHalf, string label)
+        {
+            var bar = new GameObject("TimingBar").AddComponent<TimingBar>();
+            bar.Build(transform, _font, topSide, anchoredPos, width, height, greenCenter, greenHalf, label);
+            _timingBars.Add(bar);
+            return bar;
         }
 
         public void ShowBang()
@@ -178,12 +193,43 @@ namespace HighNoon
             if (cam == null) return;
             Vector3 screen = cam.WorldToScreenPoint(worldPos);
             RectTransformUtility.ScreenPointToLocalPointInRectangle((RectTransform)transform, screen, null, out var local);
-            var txt = MakeText(transform, "Reaction", 58, new Vector2(0.5f, 0.5f), local, 560, 100);
+            var txt = MakeText(transform, "Reaction", 84, new Vector2(0.5f, 0.5f), local, 700, 150);
             txt.text = text;
             txt.color = color;
             txt.fontStyle = FontStyle.Bold;
+            var outline = txt.gameObject.AddComponent<Outline>(); // read clearly over the bright sun
+            outline.effectColor = new Color(0f, 0f, 0f, 0.85f);
+            outline.effectDistance = new Vector2(3f, -3f);
             txt.transform.SetAsLastSibling(); // above the result panel
             _reactions.Add(txt.gameObject);
+        }
+
+        /// <summary>A celebratory banner near the top (e.g. a new record). Cleared with the reactions.</summary>
+        public void ShowBanner(string text, Color color)
+        {
+            var txt = MakeText(transform, "Banner", 78, new Vector2(0.5f, 0.74f), Vector2.zero, 1040, 160);
+            txt.text = text;
+            txt.color = color;
+            txt.fontStyle = FontStyle.Bold;
+            var outline = txt.gameObject.AddComponent<Outline>();
+            outline.effectColor = new Color(0f, 0f, 0f, 0.85f);
+            outline.effectDistance = new Vector2(3f, -3f);
+            txt.transform.SetAsLastSibling();
+            _reactions.Add(txt.gameObject);
+            StartCoroutine(BannerPop(txt.rectTransform));
+        }
+
+        IEnumerator BannerPop(RectTransform rt)
+        {
+            float t = 0f, dur = 0.3f;
+            while (rt != null && t < dur)
+            {
+                t += Time.unscaledDeltaTime;
+                float s = Mathf.Lerp(0.5f, 1.1f, Mathf.Clamp01(t / dur));
+                rt.localScale = new Vector3(s, s, 1f);
+                yield return null;
+            }
+            if (rt != null) rt.localScale = Vector3.one;
         }
 
         public void ShowResult(string message, string label1, Action act1, string label2, Action act2)

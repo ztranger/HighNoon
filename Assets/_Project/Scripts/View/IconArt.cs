@@ -32,28 +32,59 @@ namespace HighNoon
             Disc(px, n, scx, scy, 6, new Color32(255, 252, 224, 255));
 
             Fill(px, n, 25, 5, 39, 7, new Color32(112, 80, 44, 255));      // ground shadow
-            Gunslinger(px, n, 32, new Color32(24, 17, 15, 255));
+            Gunslinger(px, n, 32, 0, new Color32(24, 17, 15, 255));
             Border(px, n, Black);
             return ToTex(px, n);
         }
 
-        static void Gunslinger(Color32[] px, int n, int cx, Color32 c)
+        /// <summary>Android adaptive-icon BACKGROUND layer: the full sun scene, edge-to-edge, no cowboy/border.</summary>
+        public static Texture2D IconBackground()
+        {
+            const int n = 64;
+            var px = Solid(n, new Color32(150, 110, 60, 255)); // ground
+            for (int y = 14; y < n; y++)                       // sky gradient
+            {
+                float t = (y - 14) / (float)(n - 1 - 14);
+                Color32 c = Lerp(new Color32(255, 236, 150, 255), new Color32(241, 158, 72, 255), t);
+                for (int x = 0; x < n; x++) px[y * n + x] = c;
+            }
+            Fill(px, n, 0, 12, n - 1, 12, new Color32(214, 152, 82, 255)); // horizon glow
+            Fill(px, n, 0, 13, n - 1, 13, new Color32(120, 86, 46, 255));  // horizon line
+            int scx = 32, scy = 34;
+            Rays(px, n, scx, scy, 17, 26, 16, new Color32(255, 232, 140, 255), false);
+            Disc(px, n, scx, scy, 16, new Color32(255, 236, 140, 255));
+            Disc(px, n, scx, scy, 12, new Color32(255, 246, 190, 255));
+            Disc(px, n, scx, scy, 7, new Color32(255, 252, 224, 255));
+            return ToTex(px, n); // no border, no cowboy — fills the launcher's mask
+        }
+
+        /// <summary>Android adaptive-icon FOREGROUND layer: the gunslinger, transparent, centred in the safe zone.</summary>
+        public static Texture2D IconForeground()
+        {
+            const int n = 64;
+            var px = Solid(n, new Color32(0, 0, 0, 0)); // transparent
+            Fill(px, n, 26, 10, 38, 12, new Color32(20, 14, 12, 90)); // soft ground shadow
+            Gunslinger(px, n, 32, 5, new Color32(24, 17, 15, 255));   // shifted up → centred
+            return ToTex(px, n);
+        }
+
+        static void Gunslinger(Color32[] px, int n, int cx, int dy, Color32 c)
         {
             int o = cx - 32;
-            Fill(px, n, o + 26, 7, o + 30, 10, c); Fill(px, n, o + 34, 7, o + 38, 10, c);  // boots
-            Fill(px, n, o + 27, 10, o + 30, 19, c); Fill(px, n, o + 34, 10, o + 37, 19, c); // legs
-            Fill(px, n, o + 24, 17, o + 40, 20, c);   // duster hem (flared)
-            Fill(px, n, o + 25, 20, o + 39, 26, c);
-            Fill(px, n, o + 26, 26, o + 38, 32, c);   // torso
-            Fill(px, n, o + 22, 20, o + 25, 31, c); Fill(px, n, o + 22, 18, o + 26, 20, c); // left arm + hand
-            Fill(px, n, o + 39, 20, o + 42, 31, c); Fill(px, n, o + 38, 18, o + 42, 20, c); // right arm + hand
-            Fill(px, n, o + 25, 31, o + 39, 34, c);   // shoulders
-            Fill(px, n, o + 30, 34, o + 33, 35, c);   // neck
-            Fill(px, n, o + 29, 35, o + 34, 40, c);   // head
-            Fill(px, n, o + 22, 40, o + 42, 41, c);   // hat brim
-            Set(px, n, o + 21, 40, c); Set(px, n, o + 43, 40, c);
-            Fill(px, n, o + 28, 41, o + 36, 46, c);   // crown
-            Fill(px, n, o + 29, 46, o + 35, 47, c);
+            Fill(px, n, o + 26, 7 + dy, o + 30, 10 + dy, c); Fill(px, n, o + 34, 7 + dy, o + 38, 10 + dy, c);  // boots
+            Fill(px, n, o + 27, 10 + dy, o + 30, 19 + dy, c); Fill(px, n, o + 34, 10 + dy, o + 37, 19 + dy, c); // legs
+            Fill(px, n, o + 24, 17 + dy, o + 40, 20 + dy, c);   // duster hem (flared)
+            Fill(px, n, o + 25, 20 + dy, o + 39, 26 + dy, c);
+            Fill(px, n, o + 26, 26 + dy, o + 38, 32 + dy, c);   // torso
+            Fill(px, n, o + 22, 20 + dy, o + 25, 31 + dy, c); Fill(px, n, o + 22, 18 + dy, o + 26, 20 + dy, c); // left arm + hand
+            Fill(px, n, o + 39, 20 + dy, o + 42, 31 + dy, c); Fill(px, n, o + 38, 18 + dy, o + 42, 20 + dy, c); // right arm + hand
+            Fill(px, n, o + 25, 31 + dy, o + 39, 34 + dy, c);   // shoulders
+            Fill(px, n, o + 30, 34 + dy, o + 33, 35 + dy, c);   // neck
+            Fill(px, n, o + 29, 35 + dy, o + 34, 40 + dy, c);   // head
+            Fill(px, n, o + 22, 40 + dy, o + 42, 41 + dy, c);   // hat brim
+            Set(px, n, o + 21, 40 + dy, c); Set(px, n, o + 43, 40 + dy, c);
+            Fill(px, n, o + 28, 41 + dy, o + 36, 46 + dy, c);   // crown
+            Fill(px, n, o + 29, 46 + dy, o + 35, 47 + dy, c);
         }
 
         public static Texture2D SixShooter()

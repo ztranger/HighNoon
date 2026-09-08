@@ -9,12 +9,18 @@ namespace HighNoon
         public IDuelInput Input;
         public DuelistView View;
         public string Label = "Cowboy";
+        public WeaponDef Weapon;      // gun sound this duelist fires (player = chosen, bot = default)
 
         // Per-round result
         public DuelOutcome Outcome = DuelOutcome.None;
         public double ReactionSeconds = -1;
         public bool FalseStarted;
         public bool ShotFx;   // immediate shoot feedback already played for this fire
+
+        // Timing-duel result (sweet-spot bar): whether the locked pointer landed on green
+        // and its distance (0..1) from the green centre. -1 = did not aim this round.
+        public bool AimHit;
+        public float AimError = -1f;
 
         public bool Fired => Input != null && Input.HasFired;
 
@@ -24,6 +30,8 @@ namespace HighNoon
             ReactionSeconds = -1;
             FalseStarted = false;
             ShotFx = false;
+            AimHit = false;
+            AimError = -1f;
             Input?.ResetInput();
         }
     }

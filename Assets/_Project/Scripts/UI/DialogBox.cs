@@ -109,6 +109,7 @@ namespace HighNoon
 
         void Next()
         {
+            Sfx.Click(); Haptics.Light();
             _index++;
             if (_index >= _lines.Length) { Finish(); return; }
             ShowLine(_index);

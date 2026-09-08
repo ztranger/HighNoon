@@ -21,6 +21,9 @@ namespace HighNoon
         public bool topIsBot = true;
         public bool bottomIsBot = false;
 
+        [Tooltip("Duel type used when 'useMatchSettings' is off (direct-scene testing).")]
+        public DuelType manualDuelType = DuelType.Reaction;
+
         [Header("Configs (optional — runtime defaults created if empty)")]
         public DuelConfig duelConfig;
         public BotConfig botConfig;
@@ -82,6 +85,7 @@ namespace HighNoon
             manager.Audio = audio;
             manager.Shake = _shake;
             manager.PveMode = pve;
+            manager.Type = useMatchSettings ? MatchSettings.Type : manualDuelType;
             manager.Duelists = duelists;
             if (pve)
             {
@@ -196,6 +200,7 @@ namespace HighNoon
                 Input = input,
                 View = view,
                 Label = label,
+                Weapon = isBot ? Weapons.Default : Weapons.Selected,
             };
         }
 
@@ -215,6 +220,8 @@ namespace HighNoon
 
             _shake = cam.GetComponent<CameraShake>();
             if (_shake == null) _shake = cam.gameObject.AddComponent<CameraShake>();
+
+            AppInit.EnsureAudioListener(cam); // without a listener the duel is silent on device
         }
 
         void SetupEventSystem()

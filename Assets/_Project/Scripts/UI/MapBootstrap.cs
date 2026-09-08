@@ -141,6 +141,7 @@ namespace HighNoon
 
         void StartStage()
         {
+            Sfx.Click(); Haptics.Light();
             Campaign.ShowIntro = true; // play this stage's intro banter before the duel
             SceneManager.LoadScene("Duel");
         }
@@ -210,6 +211,7 @@ namespace HighNoon
             img.color = color;
             var btn = rt.gameObject.AddComponent<Button>();
             btn.targetGraphic = img;
+            btn.onClick.AddListener(() => { Sfx.Click(); Haptics.Light(); });
             var t = Label(name + "Label", label, fontSize, new Vector2(0.5f, 0.5f), w, h, Color.white, FontStyle.Bold);
             t.transform.SetParent(rt, false);
             t.rectTransform.anchoredPosition = Vector2.zero;
@@ -248,6 +250,7 @@ namespace HighNoon
             cam.transform.position = new Vector3(0f, 0f, -10f);
             cam.clearFlags = CameraClearFlags.SolidColor;
             cam.backgroundColor = Campaign.CurrentChapter.Theme * 0.5f;
+            AppInit.EnsureAudioListener(cam);
         }
 
         void SetupEventSystem()
