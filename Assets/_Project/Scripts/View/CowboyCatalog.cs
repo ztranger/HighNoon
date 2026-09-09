@@ -10,10 +10,20 @@ namespace HighNoon
     public class CowboyCharacter
     {
         public string Id;
-        public string ResourcePath;                 // under Resources/, no extension
-        public bool FacesRight;                      // direction the source art points
-        public float Height = 3.0f;                  // target world height (feet→hat) after normalization
-        public Vector2 Muzzle = new Vector2(0.36f, 0.46f); // approx gun muzzle, normalized: x out from center, y up from feet
+        public string ResourcePath;                 // static single-pose PNG under Resources/, no extension
+        public bool FacesRight;                      // direction the source art / sheet points
+        public float Height = 3.0f;                  // static: figure world height. sheet: cell world height (feet→top of cell)
+        public Vector2 Muzzle = new Vector2(0.36f, 0.46f); // static only: approx gun muzzle, normalized: x out from center, y up from feet
+
+        // --- animated sprite sheet (optional) ---
+        // When SheetBase is set, DuelistView plays real frames (idle/shoot/death) instead of a
+        // static pose. Per HIGH_NOON_INTEGRATION.md the sheet is 6 cols x 4 rows:
+        // row0 idle-right, row1 shoot-right (flash on frame 3), row2 death-right, row3 idle-left.
+        // We use rows 0-2 and mirror to face left via flipX. Frames are loaded from the pre-cut,
+        // uniform-cell PNGs "{SheetBase}_00".."_NN" (the master sheet has ragged trailing padding).
+        public string SheetBase;
+        public int SheetCols = 6, SheetRows = 4;
+        public float FeetInset = 0.05f;              // fraction of cell height the feet sit above the cell bottom
     }
 
     /// <summary>
@@ -45,7 +55,15 @@ namespace HighNoon
             FacesRight = false, Height = 3.2f, Muzzle = new Vector2(0.34f, 0.42f),
         };
 
-        static readonly CowboyCharacter[] All = { DustyHart, RioVela, BlackCalhoun, DocGraves };
+        /// <summary>Fully animated test cowboy (red poncho) — the 6x4 sprite-sheet pipeline.</summary>
+        public static readonly CowboyCharacter Hero = new CowboyCharacter
+        {
+            Id = "hero", FacesRight = true, Height = 3.6f,
+            SheetBase = "Art/Cowboys/high_noon_hero_sprites/frames/hero_sheet_4x6",
+            SheetCols = 6, SheetRows = 4, FeetInset = 0.05f,
+        };
+
+        static readonly CowboyCharacter[] All = { Hero, DustyHart, RioVela, BlackCalhoun, DocGraves };
 
         // Opponents cycle through these so a stage bot is never a copy of the player's look.
         static readonly CowboyCharacter[] Villains = { BlackCalhoun, DocGraves, RioVela, DustyHart };

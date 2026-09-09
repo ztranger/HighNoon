@@ -8,43 +8,43 @@ namespace HighNoon
     /// opposite ends of the street and walk in from their own edge; the one facing the wrong
     /// way is mirrored (flipX) so the pair faces the centre.
     ///
-    /// Two render modes:
-    ///  • <b>Real</b> — a single hand-drawn illustration (<see cref="CowboyCatalog"/>) planted on
-    ///    the street by its feet; walk / shoot / death are driven procedurally (slide, recoil +
-    ///    muzzle flash, topple).
-    ///  • <b>Procedural</b> (fallback when art is missing) — frame-by-frame pixel poses from
-    ///    <see cref="CowboyArt"/>.
+    /// Three render modes, chosen per <see cref="CowboyLook.CharacterId"/> (see <see cref="CowboyCatalog"/>):
+    ///  • <b>Sheet</b> — a real 6x4 sprite sheet: frame-by-frame idle / shoot / death, planted by
+    ///    the feet. Recoil, muzzle flash and the fall are baked into the frames.
+    ///  • <b>Static</b> — a single hand-drawn pose: walk / shoot / death are driven procedurally
+    ///    (slide, recoil + muzzle flash, topple).
+    ///  • <b>Procedural</b> (fallback when art is missing) — pixel frames from <see cref="CowboyArt"/>.
     /// </summary>
     public class DuelistView : MonoBehaviour
     {
         const float GroundY = -1.35f; // street line where a real cowboy's feet sit
         const float DepthToY = 0.30f; // 2v2 lane vertical stagger (from the pos.y the bootstrap passes)
 
+        // Frame rates for frame-based modes (sheet / procedural).
+        const float FpsWalk = 8f, FpsIdle = 7f, FpsShoot = 12f, FpsDeath = 10f;
+
         SpriteRenderer _sr;
         FrameAnimator _anim;
         Vector3 _homePos;
         Vector3 _offscreenPos;
         bool _rightSide;
+        float _popupUp = 1.6f; // world height of the popup anchor above transform.position
 
-        // Real-sprite mode
-        bool _real;
-        Sprite _realSprite;
+        bool _static;          // single-pose code-animation mode
+        Sprite _staticSprite;
         CowboyCharacter _char;
 
-        // Procedural fallback
-        CowboyFrames _frames;
+        CowboyFrames _frames;  // sheet or procedural
 
-        static Sprite _flash; // shared muzzle-flash sprite
+        static Sprite _flash;  // shared muzzle-flash sprite (static mode only)
 
-        /// <summary>Idle sprite for UI portraits — the real illustration, or the procedural idle frame.</summary>
-        public Sprite IdlePortrait => _real
-            ? _realSprite
+        /// <summary>Idle sprite for UI portraits.</summary>
+        public Sprite IdlePortrait => _static
+            ? _staticSprite
             : (_frames != null && _frames.Idle != null && _frames.Idle.Length > 0 ? _frames.Idle[0] : null);
 
-        /// <summary>World point a reaction/accuracy popup should pin to (above the head in either mode).</summary>
-        public Vector3 PopupAnchor => _real
-            ? transform.position + Vector3.up * (_char.Height + 0.35f)
-            : transform.position + Vector3.up * 1.6f;
+        /// <summary>World point a reaction/accuracy popup pins to (above the head in every mode).</summary>
+        public Vector3 PopupAnchor => transform.position + Vector3.up * _popupUp;
 
         /// <summary><paramref name="rightSide"/> = this duelist stands on the right of the street
         /// (walks in from the right, sprite mirrored to face left toward the centre).</summary>
@@ -52,35 +52,56 @@ namespace HighNoon
         {
             _sr = sr;
             _rightSide = rightSide;
-
             _char = ResolveCharacter(look);
-            _realSprite = _char != null ? CowboySprites.Load(_char) : null;
-            _real = _realSprite != null;
 
             _anim = gameObject.AddComponent<FrameAnimator>();
             _anim.Init(sr);
 
-            if (_real)
+            // 1) Animated sprite sheet?
+            if (_char != null && !string.IsNullOrEmpty(_char.SheetBase))
+                _frames = CowboySheet.Load(_char);
+
+            if (_frames != null)
             {
-                _anim.ShowStatic(_realSprite);
-                // Face the centre: left-of-street must point right, right-of-street must point left.
+                _static = false;
+                _anim.ShowStatic(_frames.Idle[0]);
+                _sr.flipX = rightSide; // sheet faces right natively → mirror on the right
+                PlantOnStreet();
+                _popupUp = _char.Height * 0.95f;
+                return;
+            }
+
+            // 2) Static single pose?
+            _staticSprite = _char != null ? CowboySprites.Load(_char) : null;
+            if (_staticSprite != null)
+            {
+                _static = true;
+                _anim.ShowStatic(_staticSprite);
                 _sr.flipX = rightSide ? _char.FacesRight : !_char.FacesRight;
-
-                // Plant feet on the street. Normalization is baked into the sprite (PPU), so scale = 1;
-                // the pos.y the bootstrap passes becomes a small depth stagger for 2v2 lanes.
-                var p = transform.position;
-                transform.localScale = Vector3.one;
-                transform.position = new Vector3(p.x, GroundY + p.y * DepthToY, 0f);
-            }
-            else
-            {
-                _frames = CowboyArt.Build(look);
-                _sr.sprite = _frames.Idle[0];
-                _sr.flipX = rightSide;
+                PlantOnStreet();
+                _popupUp = _char.Height + 0.35f;
+                return;
             }
 
+            // 3) Procedural fallback (unchanged framing: centre pivot, bootstrap scale).
+            _frames = CowboyArt.Build(look);
+            _static = false;
+            _sr.sprite = _frames.Idle[0];
+            _sr.flipX = rightSide;
+            _popupUp = 1.6f;
             _homePos = transform.position;
             _offscreenPos = _homePos + (rightSide ? Vector3.right : Vector3.left) * 9f;
+        }
+
+        /// <summary>Feet on the street; normalization is baked into the sprite (PPU) so scale = 1.
+        /// The pos.y the bootstrap passes becomes a small depth stagger for 2v2 lanes.</summary>
+        void PlantOnStreet()
+        {
+            var p = transform.position;
+            transform.localScale = Vector3.one;
+            transform.position = new Vector3(p.x, GroundY + p.y * DepthToY, 0f);
+            _homePos = transform.position;
+            _offscreenPos = _homePos + (_rightSide ? Vector3.right : Vector3.left) * 9f;
         }
 
         static CowboyCharacter ResolveCharacter(CowboyLook look)
@@ -89,13 +110,15 @@ namespace HighNoon
             return CowboyCatalog.Get(look.CharacterId) ?? CowboyCatalog.VillainFor(look.CacheKey());
         }
 
+        // ---- state transitions (called by DuelManager) ----
+
         public void SetIdleOffscreen()
         {
             StopAllCoroutines();
             transform.rotation = Quaternion.identity;
             transform.position = _offscreenPos;
-            if (_real) _anim.ShowStatic(_realSprite);
-            else _anim.Play(_frames.Idle, 3f, loop: true);
+            if (_static) _anim.ShowStatic(_staticSprite);
+            else _anim.Play(_frames.Idle, FpsWalk, loop: true);
         }
 
         /// <summary>Walk-in runs on this view so <see cref="SetIdleOffscreen"/> can stop it.</summary>
@@ -108,8 +131,8 @@ namespace HighNoon
 
         IEnumerator WalkIn(float duration)
         {
-            if (_real) _anim.ShowStatic(_realSprite);
-            else _anim.Play(_frames.Idle, 6f, loop: true); // brisker "walking" bob
+            if (_static) _anim.ShowStatic(_staticSprite);
+            else _anim.Play(_frames.Idle, FpsWalk, loop: true);
 
             float t = 0f;
             Vector3 start = _offscreenPos;
@@ -117,7 +140,7 @@ namespace HighNoon
             {
                 t += Time.deltaTime;
                 Vector3 pos = Vector3.Lerp(start, _homePos, Mathf.Clamp01(t / duration));
-                if (_real) pos.y += Mathf.Abs(Mathf.Sin(t * 10f)) * 0.06f; // footstep bob
+                if (_static) pos.y += Mathf.Abs(Mathf.Sin(t * 10f)) * 0.06f; // procedural footstep bob
                 transform.position = pos;
                 yield return null;
             }
@@ -126,17 +149,17 @@ namespace HighNoon
 
         public void Stance()
         {
-            if (!_real) { _anim.Play(_frames.Ready, 4f, loop: true); return; }
+            if (!_static) { _anim.Play(_frames.Ready, FpsIdle, loop: true); return; }
             StopAllCoroutines();
             transform.rotation = Quaternion.identity;
             transform.position = _homePos;
-            _anim.ShowStatic(_realSprite);
+            _anim.ShowStatic(_staticSprite);
             StartCoroutine(Breathe());
         }
 
         public void PlayShoot()
         {
-            if (!_real) { _anim.Play(_frames.Shoot, 12f, loop: false); return; }
+            if (!_static) { _anim.Play(_frames.Shoot, FpsShoot, loop: false); return; }
             StopAllCoroutines();
             SpawnMuzzleFlash();
             StartCoroutine(Recoil());
@@ -144,12 +167,12 @@ namespace HighNoon
 
         public void PlayDeath()
         {
-            if (!_real) { _anim.Play(_frames.Death, 6f, loop: false); return; }
+            if (!_static) { _anim.Play(_frames.Death, FpsDeath, loop: false); return; }
             StopAllCoroutines();
             StartCoroutine(Topple());
         }
 
-        // ---- real-sprite code animation ----
+        // ---- static-pose code animation ----
 
         IEnumerator Breathe()
         {
