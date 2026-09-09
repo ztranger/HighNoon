@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace HighNoon
@@ -6,37 +7,45 @@ namespace HighNoon
     /// Code-drawn placeholder pixel sprites so the game is playable before real
     /// art exists. Point-filtered to keep the crisp pixel look. Swap for imported
     /// Aseprite sprite sheets later without touching gameplay code.
+    /// Solid fills, the cowboy silhouette, and the tumbleweed are cached.
     /// </summary>
     public static class PlaceholderArt
     {
+        static readonly Dictionary<string, Sprite> Cache = new Dictionary<string, Sprite>();
+        static Sprite _tumbleweed;
+
         public static Sprite SolidSprite(Color c, int w = 4, int h = 4, int ppu = 4)
         {
-            var tex = new Texture2D(w, h, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point };
-            var px = new Color32[w * h];
             Color32 c32 = c;
+            string key = $"solid_{c32.r:x2}{c32.g:x2}{c32.b:x2}{c32.a:x2}_{w}_{h}_{ppu}";
+            if (Cache.TryGetValue(key, out var s)) return s;
+
+            var px = new Color32[w * h];
             for (int i = 0; i < px.Length; i++) px[i] = c32;
-            tex.SetPixels32(px);
-            tex.Apply();
-            return Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.5f), ppu);
+            s = ProcSprites.Make(px, w, h, new Vector2(0.5f, 0.5f), ppu);
+            Cache[key] = s;
+            return s;
         }
 
         /// <summary>Tiny top-down-ish cowboy silhouette (hat + body), pivot centered.</summary>
         public static Sprite Cowboy(Color body, int ppu = 16)
         {
+            Color32 bc = body;
+            string key = $"cowboy_{bc.r:x2}{bc.g:x2}{bc.b:x2}_{ppu}";
+            if (Cache.TryGetValue(key, out var s)) return s;
+
             const int w = 16, h = 20;
-            var tex = new Texture2D(w, h, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point };
             var px = new Color32[w * h];
             var clear = new Color32(0, 0, 0, 0);
             for (int i = 0; i < px.Length; i++) px[i] = clear;
 
-            Color32 bc = body;
             Color32 dark = new Color32((byte)(body.r * 160), (byte)(body.g * 160), (byte)(body.b * 160), 255);
 
             void Set(int x, int y, Color32 c) { if (x >= 0 && y >= 0 && x < w && y < h) px[y * w + x] = c; }
             void Fill(int x0, int y0, int x1, int y1, Color32 c)
             {
                 for (int y = y0; y <= y1; y++)
-                    for (int x = x0; x <= x1; x++)
+                    for (int x = x0; x < w && x <= x1; x++)
                         Set(x, y, c);
             }
 
@@ -46,16 +55,17 @@ namespace HighNoon
             Fill(4, 16, 11, 17, dark); // hat brim
             Fill(6, 17, 9, 19, dark);  // hat top
 
-            tex.SetPixels32(px);
-            tex.Apply();
-            return Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.5f), ppu);
+            s = ProcSprites.Make(px, w, h, new Vector2(0.5f, 0.5f), ppu);
+            Cache[key] = s;
+            return s;
         }
 
-        /// <summary>A tangled tumbleweed ball with a jagged, gappy outline.</summary>
+        /// <summary>A tangled tumbleweed ball with a jagged, gappy outline. One sprite for the session.</summary>
         public static Sprite Tumbleweed(int ppu = 16)
         {
+            if (_tumbleweed != null) return _tumbleweed;
+
             const int w = 16, h = 16;
-            var tex = new Texture2D(w, h, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point };
             var px = new Color32[w * h];
             for (int i = 0; i < px.Length; i++) px[i] = new Color32(0, 0, 0, 0);
 
@@ -78,9 +88,8 @@ namespace HighNoon
                     }
                 }
 
-            tex.SetPixels32(px);
-            tex.Apply();
-            return Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.5f), ppu);
+            _tumbleweed = ProcSprites.Make(px, w, h, new Vector2(0.5f, 0.5f), ppu);
+            return _tumbleweed;
         }
     }
 }

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace HighNoon
@@ -5,20 +6,19 @@ namespace HighNoon
     /// <summary>
     /// Procedurally drawn pixel props for arena backgrounds. Point-filtered,
     /// transparent, pivoted near the base so they sit on the ground.
+    /// Each silhouette is built once and reused.
     /// </summary>
     public static class PropArt
     {
-        static Texture2D NewTex(int w, int h)
-        {
-            var tex = new Texture2D(w, h, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point };
-            return tex;
-        }
+        static readonly Dictionary<string, Sprite> Cache = new Dictionary<string, Sprite>();
 
-        static Sprite Finish(Texture2D tex, Color32[] px, int ppu)
+        static Sprite Memo(string key, Color32[] px, int w, int h, int ppu)
         {
-            tex.SetPixels32(px);
-            tex.Apply();
-            return Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.08f), ppu);
+            key = key + ppu;
+            if (Cache.TryGetValue(key, out var s)) return s;
+            s = ProcSprites.Make(px, w, h, new Vector2(0.5f, 0.08f), ppu);
+            Cache[key] = s;
+            return s;
         }
 
         static Color32[] Clear(int w, int h)
@@ -38,7 +38,7 @@ namespace HighNoon
             F(2, 12, 6, 14, g); F(2, 14, 4, 20, g); F(2, 14, 2, 20, gl); // left arm
             F(9, 16, 14, 18, g); F(12, 18, 14, 24, g); F(14, 18, 14, 24, gd); // right arm
             for (int y = 3; y < 24; y += 4) { S(7, y, gd); S(8, y, gl); }        // spines
-            return Finish(NewTex(w, h), px, ppu);
+            return Memo("cactus", px, w, h, ppu);
         }
 
         public static Sprite Rock(int ppu = 16)
@@ -49,7 +49,7 @@ namespace HighNoon
             void F(int x0, int y0, int x1, int y1, Color32 c) { for (int y = y0; y <= y1; y++) for (int x = x0; x <= x1; x++) S(x, y, c); }
             F(3, 0, 12, 1, d); F(1, 2, 14, 5, b); F(2, 6, 13, 7, b); F(4, 8, 11, 8, l); F(6, 9, 9, 9, l);
             F(2, 5, 6, 6, l);   // top-left highlight
-            return Finish(NewTex(w, h), px, ppu);
+            return Memo("rock", px, w, h, ppu);
         }
 
         public static Sprite Barrel(int ppu = 16)
@@ -61,7 +61,7 @@ namespace HighNoon
             F(2, 1, 11, 16, wood); F(9, 1, 11, 16, woodD);
             F(2, 3, 11, 3, hoop); F(2, 8, 11, 8, hoop); F(2, 13, 11, 13, hoop);
             F(3, 16, 10, 17, top);
-            return Finish(NewTex(w, h), px, ppu);
+            return Memo("barrel", px, w, h, ppu);
         }
 
         public static Sprite Skull(int ppu = 16)
@@ -78,7 +78,7 @@ namespace HighNoon
             F(4, 3, 4, 11, boneD); F(13, 3, 13, 11, boneD);
             // eyes + nose
             F(5, 6, 7, 8, dark); F(10, 6, 12, 8, dark); F(8, 1, 9, 3, dark);
-            return Finish(NewTex(w, h), px, ppu);
+            return Memo("skull", px, w, h, ppu);
         }
 
         public static Sprite GrassTuft(int ppu = 16)
@@ -88,7 +88,7 @@ namespace HighNoon
             void S(int x, int y, Color32 c) { if (x >= 0 && y >= 0 && x < w && y < h) px[y * w + x] = c; }
             void Blade(int x, int top, Color32 c) { for (int y = 0; y <= top; y++) S(x, y, c); }
             Blade(2, 6, gd); Blade(3, 8, g); Blade(5, 5, gd); Blade(6, 9, g); Blade(8, 7, gd); Blade(9, 6, g);
-            return Finish(NewTex(w, h), px, ppu);
+            return Memo("grasstuft", px, w, h, ppu);
         }
 
         public static Sprite FencePost(int ppu = 16)
@@ -99,7 +99,7 @@ namespace HighNoon
             void F(int x0, int y0, int x1, int y1, Color32 c) { for (int y = y0; y <= y1; y++) for (int x = x0; x <= x1; x++) S(x, y, c); }
             F(3, 0, 6, 17, wood); F(6, 0, 6, 17, woodD); F(4, 17, 5, 19, woodD); // post + cap
             F(0, 9, 9, 10, wood); F(0, 12, 9, 13, wood);                          // rails
-            return Finish(NewTex(w, h), px, ppu);
+            return Memo("fencepost", px, w, h, ppu);
         }
 
         public static Sprite Plank(int ppu = 16)
@@ -111,7 +111,7 @@ namespace HighNoon
             F(0, 0, 23, 7, wood);
             F(0, 0, 23, 0, grain); F(0, 7, 23, 7, grain);
             F(0, 3, 23, 3, grainL); F(7, 1, 7, 6, grain); F(16, 1, 16, 6, grain); // seams
-            return Finish(NewTex(w, h), px, ppu);
+            return Memo("plank", px, w, h, ppu);
         }
 
         public static Sprite Tombstone(int ppu = 16)
@@ -124,7 +124,7 @@ namespace HighNoon
             F(3, 13, 10, 13, b); F(4, 14, 9, 14, b); F(5, 15, 8, 15, b); // rounded top
             F(11, 0, 11, 13, d); F(2, 0, 2, 13, l);               // shade + highlight
             F(6, 4, 7, 11, dark); F(4, 8, 9, 9, dark);            // cross engraving
-            return Finish(NewTex(w, h), px, ppu);
+            return Memo("tombstone", px, w, h, ppu);
         }
 
         public static Sprite DeadTree(int ppu = 16)
@@ -150,7 +150,7 @@ namespace HighNoon
             Line(9, 14, 3, 22, b); Line(3, 22, 2,27, b);   // left branch
             Line(11, 16, 16, 23, b); Line(16, 23, 17, 28, b); // right branch
             Line(10, 20, 10, 27, b);                        // top twig
-            return Finish(NewTex(w, h), px, ppu);
+            return Memo("deadtree", px, w, h, ppu);
         }
 
         public static Sprite HayBale(int ppu = 16)
@@ -162,7 +162,7 @@ namespace HighNoon
             F(1, 1, 16, 12, hay);
             F(1, 1, 16, 2, hd); F(1, 11, 16, 12, hd); // top/bottom shading
             F(5, 1, 5, 12, bind); F(12, 1, 12, 12, bind); // bindings
-            return Finish(NewTex(w, h), px, ppu);
+            return Memo("haybale", px, w, h, ppu);
         }
     }
 }

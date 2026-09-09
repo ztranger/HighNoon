@@ -20,6 +20,13 @@ namespace HighNoon
         public Accessory Chest  = Accessory.None;
         public FacialHair Facial = FacialHair.None;
 
+        /// <summary>Stable key for <see cref="CowboyArt"/> frame cache.</summary>
+        public string CacheKey()
+        {
+            Color32 s = Shirt, h = HatColor, k = Skin, a = Accent;
+            return $"{s.r:x2}{s.g:x2}{s.b:x2}_{h.r:x2}{h.g:x2}{h.b:x2}_{k.r:x2}{k.g:x2}{k.b:x2}_{a.r:x2}{a.g:x2}{a.b:x2}_{(int)HatType}_{(int)Chest}_{(int)Facial}";
+        }
+
         /// <summary>Plain cowboy in the given shirt color (used for PvP/Coop team tinting).</summary>
         public static CowboyLook Basic(Color shirt) => new CowboyLook { Shirt = shirt };
 

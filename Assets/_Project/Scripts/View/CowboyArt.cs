@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace HighNoon
@@ -31,16 +32,23 @@ namespace HighNoon
             public FacialHair facial;
         }
 
+        static readonly Dictionary<string, CowboyFrames> Cache = new Dictionary<string, CowboyFrames>();
+
         public static CowboyFrames Build(CowboyLook look)
         {
-            var p = MakePalette(look);
-            return new CowboyFrames
+            string key = look != null ? look.CacheKey() : "default";
+            if (Cache.TryGetValue(key, out var frames)) return frames;
+
+            var p = MakePalette(look ?? CowboyLook.Basic(Color.white));
+            frames = new CowboyFrames
             {
                 Idle  = new[] { Frame(p, Pose.Idle0), Frame(p, Pose.Idle1) },
                 Ready = new[] { Frame(p, Pose.Ready) },
                 Shoot = new[] { Frame(p, Pose.Shoot0), Frame(p, Pose.Shoot1) },
                 Death = new[] { Frame(p, Pose.Dead0), Frame(p, Pose.Dead1) },
             };
+            Cache[key] = frames;
+            return frames;
         }
 
         /// <summary>Convenience: a plain cowboy in the given shirt color.</summary>
@@ -83,10 +91,7 @@ namespace HighNoon
                 case Pose.Dead1: DrawDeadDown(px, p); break;
             }
 
-            var tex = new Texture2D(W, H, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point };
-            tex.SetPixels32(px);
-            tex.Apply();
-            return Sprite.Create(tex, new Rect(0, 0, W, H), new Vector2(0.5f, 0.5f), PPU);
+            return ProcSprites.Make(px, W, H, new Vector2(0.5f, 0.5f), PPU);
         }
 
         // ---- poses ----

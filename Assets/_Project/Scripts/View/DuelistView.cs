@@ -17,6 +17,10 @@ namespace HighNoon
         Vector3 _offscreenPos;
         bool _faceDown;
 
+        /// <summary>Idle frame for UI portraits — same cached sprites as the cowboy on the field.</summary>
+        public Sprite IdlePortrait => _frames != null && _frames.Idle != null && _frames.Idle.Length > 0
+            ? _frames.Idle[0] : null;
+
         public void Setup(SpriteRenderer sr, CowboyLook look, bool faceDown)
         {
             _sr = sr;

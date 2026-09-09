@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace HighNoon
@@ -8,6 +9,8 @@ namespace HighNoon
     /// </summary>
     public static class BackgroundBuilder
     {
+        static readonly Dictionary<string, Sprite> Grounds = new Dictionary<string, Sprite>();
+
         public static GameObject Build(ArenaDef def)
         {
             var root = new GameObject("BackgroundRoot");
@@ -46,8 +49,10 @@ namespace HighNoon
 
         static Sprite BuildGround(ArenaDef def)
         {
+            string key = def != null ? def.Name : "?";
+            if (Grounds.TryGetValue(key, out var cached)) return cached;
+
             const int T = 128;
-            var tex = new Texture2D(T, T, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point };
             var px = new Color32[T * T];
             int seedInt = def.Name.GetHashCode();
             float seed = (seedInt % 1000) * 0.01f;
@@ -64,9 +69,9 @@ namespace HighNoon
                     px[y * T + x] = c;
                 }
 
-            tex.SetPixels32(px);
-            tex.Apply();
-            return Sprite.Create(tex, new Rect(0, 0, T, T), new Vector2(0.5f, 0.5f), 100);
+            var sprite = ProcSprites.Make(px, T, T, new Vector2(0.5f, 0.5f), 100);
+            Grounds[key] = sprite;
+            return sprite;
         }
 
         static void PlaceProps(ArenaDef def, Transform parent, float cover)

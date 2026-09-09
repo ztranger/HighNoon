@@ -137,7 +137,7 @@ Allocated with no `Destroy` today:
 
 Also: `ScriptableObject.CreateInstance<BotConfig>()` / `DuelConfig` each Duel load when using match settings — runtime SOs leak until domain unload.
 
-**Fix:** cache by look/weapon/arena name; `Destroy` textures on scene teardown (`OnDestroy` of the view / background root). Cache `WeaponArt.For`. Destroy runtime SOs with the duel GO, or reuse one.
+**Done 2026-09-09.** Session caches by look / weapon index / prop name / arena name / tumbleweed. Dialog portraits reuse `DuelistView.IdlePortrait`. `ProcSprites.Destroy` is there for uncached one-offs. Runtime SOs (`BotConfig`/`DuelConfig`) are a separate item.
 
 **Files:** `View/CowboyArt.cs`, `View/DuelistView.cs`, `View/BackgroundBuilder.cs`, `View/PropArt.cs`, `View/PlaceholderArt.cs`, `View/WeaponArt.cs`, `View/Tumbleweed.cs`, `UI/DialogBox.cs` + `DuelBootstrap` intro portraits, `Core/DuelBootstrap.cs` (SO instances).
 
@@ -228,8 +228,8 @@ Check boxes as you complete work. Prefer one item (or a tight pair) per change.
 
 ### P1 — memory & hitch
 
-- [ ] **Cache + Destroy procedural textures** (cowboy frames, weapons, ground, props, tumbleweed). Don't rebuild portraits in the dialog if the duelist already has frames.
-- [ ] **Cache `WeaponArt.For(index)`**; don't allocate on every carousel click.
+- [x] **Cache + Destroy procedural textures** (cowboy frames, weapons, ground, props, tumbleweed). Don't rebuild portraits in the dialog if the duelist already has frames. (`ProcSprites.Make` + session caches in `CowboyArt`/`PropArt`/`PlaceholderArt`/`BackgroundBuilder`. Dialog uses `DuelistView.IdlePortrait`. Cached sprites are `HideAndDontSave` and live for the session — Destroy-on-teardown would fight the cache.)
+- [x] **Cache `WeaponArt.For(index)`**; don't allocate on every carousel click.
 - [ ] **Don't leak runtime ScriptableObjects** (`BotConfig` / `DuelConfig` `CreateInstance`).
 - [ ] **Haptics:** cache JNI effects; never `Handheld.Vibrate()` on a 18 ms gunshot tick.
 
@@ -263,7 +263,7 @@ Keep MRs small. A reasonable sequence:
 1. **`fix: reaction timestamps + same-frame draw`** — HumanDuelInput + DecideLane compare. Highest skill-feel impact. **Done 2026-09-09.**
 2. **`fix: decide-before-fx + no LINQ in bang loop`** — same file, separate commit if the diff is large. **Done 2026-09-09.**
 3. **`fix: lock 60 fps in AppInit`** — one-liner + comment. **Done 2026-09-09.**
-4. **`fix: cache/destroy procedural sprites`** — art helpers; behavior unchanged.
+4. **`fix: cache/destroy procedural sprites`** — art helpers; behavior unchanged. **Done 2026-09-09.**
 5. **`fix: campaign LoadSavedRun zero-life / inactive hydrate`**
 6. **`refactor: shared intro/stance`** — only after P0 is green.
 7. Meta foundations from the other doc.

@@ -107,8 +107,8 @@ namespace HighNoon
                 var playerLook = CowboyLook.Player();
                 var oppLook = stage.Look ?? CowboyLook.Enemy();
                 dialog.Play(stage.Intro,
-                    "YOU", playerLook.Shirt, CowboyArt.Build(playerLook).Idle[0],
-                    stage.Title, oppLook.Shirt, CowboyArt.Build(oppLook).Idle[0],
+                    "YOU", playerLook.Shirt, PortraitOf(duelists, DuelSide.Bottom),
+                    stage.Title, oppLook.Shirt, PortraitOf(duelists, DuelSide.Top),
                     manager.StartDuel);
             }
             else
@@ -173,6 +173,13 @@ namespace HighNoon
                 MakeDuelist(DuelSide.Top,    0, -2f, true,  CowboyLook.Enemy(),   "BOT", TopLeft,     Key.None),
                 MakeDuelist(DuelSide.Top,    1,  2f, true,  CowboyLook.Enemy(),   "BOT", TopRight,    Key.None),
             };
+        }
+
+        static Sprite PortraitOf(List<Duelist> list, DuelSide side)
+        {
+            foreach (var d in list)
+                if (d.Side == side) return d.View.IdlePortrait;
+            return null;
         }
 
         Duelist MakeDuelist(DuelSide side, int lane, float x, bool isBot, CowboyLook look, string label, Rect zone, Key key)

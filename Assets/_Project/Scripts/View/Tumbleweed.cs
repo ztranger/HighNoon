@@ -26,7 +26,7 @@ namespace HighNoon
 
             var go = new GameObject("Tumbleweed");
             var sr = go.AddComponent<SpriteRenderer>();
-            sr.sprite = PlaceholderArt.Tumbleweed();
+            sr.sprite = PlaceholderArt.Tumbleweed(); // cached — Destroy(GO) must not Destroy the texture
             sr.sortingOrder = 20;
 
             bool leftToRight = Random.value < 0.5f;

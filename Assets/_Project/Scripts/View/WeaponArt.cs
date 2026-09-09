@@ -26,16 +26,25 @@ namespace HighNoon
         static readonly Color GL  = new Color(0.45f, 0.72f, 0.88f); // scope glass
         static readonly Color STM = new Color(1f, 1f, 1f, 0.55f);   // steam
 
+        static Sprite[] _cache;
+
         public static Sprite For(int index)
         {
-            switch (index)
+            int n = Weapons.Count;
+            if (_cache == null || _cache.Length != n) _cache = new Sprite[n];
+            int i = (index >= 0 && index < n) ? index : 0;
+            if (_cache[i] != null) return _cache[i];
+
+            Sprite s;
+            switch (i)
             {
-                case 1: return DesertEagle();
-                case 2: return Shotgun();
-                case 3: return Sniper();
-                case 4: return Steampunk();
-                default: return Revolver();
+                case 1: s = DesertEagle(); break;
+                case 2: s = Shotgun(); break;
+                case 3: s = Sniper(); break;
+                case 4: s = Steampunk(); break;
+                default: s = Revolver(); break;
             }
+            return _cache[i] = s;
         }
 
         public static Sprite Revolver()
@@ -160,11 +169,6 @@ namespace HighNoon
         }
 
         static Sprite Make(Color32[] px)
-        {
-            var tex = new Texture2D(W, H, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point };
-            tex.SetPixels32(px);
-            tex.Apply();
-            return Sprite.Create(tex, new Rect(0, 0, W, H), new Vector2(0.5f, 0.5f), 100);
-        }
+            => ProcSprites.Make(px, W, H, new Vector2(0.5f, 0.5f), 100);
     }
 }
