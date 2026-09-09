@@ -1,6 +1,6 @@
 namespace HighNoon
 {
-    public enum GameMode { PvP, Coop, PvE }   // Coop/PvE wired later
+    public enum GameMode { PvP, Coop, PvE }
     public enum PvPPlayers { OnePlayer, TwoPlayers }
     public enum Difficulty { Easy, Normal, Hard }
 
@@ -19,7 +19,7 @@ namespace HighNoon
         /// the PvE campaign overrides it per stage in <see cref="Campaign.ApplyToMatch"/>.</summary>
         public static DuelType Type = DuelType.Reaction;
 
-        /// <summary>Arena name to force, or null for a random arena each duel. The menu can set this later.</summary>
+        /// <summary>Arena name to pin (PvE stage via <see cref="Campaign.ApplyToMatch"/>), or null for a random pick.</summary>
         public static string ForcedArena = null;
 
         /// <summary>Writes difficulty-appropriate reaction times into a bot config.</summary>

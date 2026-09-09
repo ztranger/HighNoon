@@ -2,7 +2,6 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
-using UnityEngine.SceneManagement;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.UI;
 using UnityEngine.InputSystem.EnhancedTouch;
@@ -179,7 +178,7 @@ namespace HighNoon
         void Finish()
         {
             GameSettings.TutorialDone = true;
-            SceneManager.LoadScene("MainMenu");
+            DuelFlow.Menu();
         }
 
         IEnumerator WaitTap(HumanDuelInput input)

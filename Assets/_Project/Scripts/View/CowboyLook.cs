@@ -51,5 +51,33 @@ namespace HighNoon
             Accent = new Color(0.16f, 0.16f, 0.18f),
             Chest = Accessory.Bandana,
         };
+
+        /// <summary>
+        /// Same gang, different silhouette — hat / chest / facial / shirt shift so a 2v2
+        /// partner is not a clone of <paramref name="source"/> (PvE co-op and Coop bots).
+        /// </summary>
+        public static CowboyLook Partner(CowboyLook source)
+        {
+            if (source == null) return Enemy();
+            return new CowboyLook
+            {
+                Shirt = new Color(
+                    Mathf.Clamp01(source.Shirt.r * 0.72f),
+                    Mathf.Clamp01(source.Shirt.g * 0.88f),
+                    Mathf.Clamp01(source.Shirt.b * 1.08f)),
+                HatColor = Color.Lerp(source.HatColor, Color.black, 0.22f),
+                Skin = source.Skin,
+                Accent = source.Accent,
+                HatType = (HatStyle)(((int)source.HatType + 1) % 4),
+                Chest = source.Chest == Accessory.Vest ? Accessory.Bandana
+                      : source.Chest == Accessory.Bandana ? Accessory.Poncho
+                      : source.Chest == Accessory.Poncho ? Accessory.Vest
+                      : source.Chest == Accessory.Badge ? Accessory.Vest
+                      : Accessory.Vest,
+                Facial = source.Facial == FacialHair.Beard ? FacialHair.Mustache
+                       : source.Facial == FacialHair.Mustache ? FacialHair.None
+                       : FacialHair.Mustache,
+            };
+        }
     }
 }

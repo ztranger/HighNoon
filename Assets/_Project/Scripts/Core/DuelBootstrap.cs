@@ -31,6 +31,11 @@ namespace HighNoon
         CameraShake _shake;
         ArenaDef _arena;
 
+        // Session-cached fallbacks so Play-from-Duel / match-settings don't leak a
+        // new ScriptableObject on every scene load (UnityEngine.Object until domain unload).
+        static DuelConfig _runtimeDuel;
+        static BotConfig _runtimeBot;
+
         // Landscape showdown tap zones: each player taps their side of the street.
         static readonly Rect LeftHalf  = new Rect(0f, 0f, 0.5f, 1f);
         static readonly Rect RightHalf = new Rect(0.5f, 0f, 0.5f, 1f);
@@ -62,15 +67,16 @@ namespace HighNoon
                 MatchSettings.ForcedArena = null; // PvP/Coop use random arenas
             }
 
-            if (duelConfig == null) duelConfig = ScriptableObject.CreateInstance<DuelConfig>();
+            if (duelConfig == null) duelConfig = RuntimeDuelConfig();
             if (useMatchSettings)
             {
-                botConfig = ScriptableObject.CreateInstance<BotConfig>();
+                botConfig = RuntimeBotConfig();
                 MatchSettings.ApplyDifficulty(botConfig);
             }
             else if (botConfig == null)
             {
-                botConfig = ScriptableObject.CreateInstance<BotConfig>();
+                botConfig = RuntimeBotConfig();
+                botConfig.ApplyDefaults();
             }
 
             _arena = Arenas.Pick(MatchSettings.ForcedArena);
@@ -129,16 +135,17 @@ namespace HighNoon
         {
             string opponent = Campaign.CurrentStage.Title;
             var oppLook = Campaign.CurrentStage.Look ?? CowboyLook.Enemy();
+            var partnerLook = CowboyLook.Partner(oppLook);
 
             // Two players share the LEFT; two bots (the stage opponents) hold the RIGHT.
             if (MatchSettings.Players == PvPPlayers.TwoPlayers)
             {
                 return new List<Duelist>
                 {
-                    MakeDuelist(DuelSide.Bottom, 0, PairLeftA,  false, CowboyLook.Player(),  "P1",     LeftUpper, Key.A),
-                    MakeDuelist(DuelSide.Bottom, 1, PairLeftB,  false, CowboyLook.Player2(), "P2",     LeftLower, Key.D),
-                    MakeDuelist(DuelSide.Top,    0, PairRightA, true,  oppLook,              opponent, RightHalf, Key.None),
-                    MakeDuelist(DuelSide.Top,    1, PairRightB, true,  oppLook,              opponent, RightHalf, Key.None),
+                    MakeDuelist(DuelSide.Bottom, 0, PairLeftA,  false, CowboyLook.Player(),  "P1",             LeftUpper, Key.A),
+                    MakeDuelist(DuelSide.Bottom, 1, PairLeftB,  false, CowboyLook.Player2(), "P2",             LeftLower, Key.D),
+                    MakeDuelist(DuelSide.Top,    0, PairRightA, true,  oppLook,              opponent + " 1", RightHalf, Key.None),
+                    MakeDuelist(DuelSide.Top,    1, PairRightB, true,  partnerLook,         opponent + " 2", RightHalf, Key.None),
                 };
             }
 
@@ -174,12 +181,13 @@ namespace HighNoon
         List<Duelist> BuildCoop()
         {
             // Two players share the LEFT (upper/lower); two bots hold the RIGHT.
+            var botLook = CowboyLook.Enemy();
             return new List<Duelist>
             {
-                MakeDuelist(DuelSide.Bottom, 0, PairLeftA,  false, CowboyLook.Player(),  "P1",  LeftUpper, Key.A),
-                MakeDuelist(DuelSide.Bottom, 1, PairLeftB,  false, CowboyLook.Player2(), "P2",  LeftLower, Key.D),
-                MakeDuelist(DuelSide.Top,    0, PairRightA, true,  CowboyLook.Enemy(),   "BOT", RightHalf, Key.None),
-                MakeDuelist(DuelSide.Top,    1, PairRightB, true,  CowboyLook.Enemy(),   "BOT", RightHalf, Key.None),
+                MakeDuelist(DuelSide.Bottom, 0, PairLeftA,  false, CowboyLook.Player(),  "P1",    LeftUpper, Key.A),
+                MakeDuelist(DuelSide.Bottom, 1, PairLeftB,  false, CowboyLook.Player2(), "P2",    LeftLower, Key.D),
+                MakeDuelist(DuelSide.Top,    0, PairRightA, true,  botLook,              "BOT 1", RightHalf, Key.None),
+                MakeDuelist(DuelSide.Top,    1, PairRightB, true,  CowboyLook.Partner(botLook), "BOT 2", RightHalf, Key.None),
             };
         }
 
@@ -246,6 +254,26 @@ namespace HighNoon
             var es = new GameObject("EventSystem");
             es.AddComponent<EventSystem>();
             es.AddComponent<InputSystemUIInputModule>().AssignDefaultActions();
+        }
+
+        static DuelConfig RuntimeDuelConfig()
+        {
+            if (_runtimeDuel == null)
+            {
+                _runtimeDuel = ScriptableObject.CreateInstance<DuelConfig>();
+                _runtimeDuel.hideFlags = HideFlags.HideAndDontSave;
+            }
+            return _runtimeDuel;
+        }
+
+        static BotConfig RuntimeBotConfig()
+        {
+            if (_runtimeBot == null)
+            {
+                _runtimeBot = ScriptableObject.CreateInstance<BotConfig>();
+                _runtimeBot.hideFlags = HideFlags.HideAndDontSave;
+            }
+            return _runtimeBot;
         }
     }
 }

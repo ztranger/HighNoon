@@ -1,7 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
-using UnityEngine.SceneManagement;
 using UnityEngine.InputSystem.UI;
 
 namespace HighNoon
@@ -11,6 +10,7 @@ namespace HighNoon
     /// Tabs: STATS (records) · GUNS (weapon select) · HOME (idle hero + PvP/PvE) · SETUP (the
     /// full match-config / test menu) · SOUND (audio + tutorial). Home is the default tab.
     /// Everything is built in code (no scene wiring). Writes selections to <see cref="MatchSettings"/>.
+    /// New meta UI (shop / pass / crates) belongs in its own scene or widget — not another tab here.
     /// </summary>
     public class MainMenuBootstrap : MonoBehaviour
     {
@@ -39,7 +39,7 @@ namespace HighNoon
         void Start()
         {
             AppInit.Apply();
-            if (!GameSettings.TutorialDone) { SceneManager.LoadScene("Tutorial"); return; } // first launch → teach
+            if (!GameSettings.TutorialDone) { DuelFlow.Tutorial(); return; } // first launch → teach
 
             _font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             if (_font == null) _font = Resources.GetBuiltinResource<Font>("Arial.ttf");
@@ -143,14 +143,14 @@ namespace HighNoon
             heroGo.AddComponent<UiSpriteAnim>().Play(heroImg, frames.Idle, 2.5f);
 
             var pvp = MakeButton(p, "HomePvP", "PvP  DUEL", new Vector2(0.5f, 0.285f), Vector2.zero, 660, 150, 60, Gold, out _, true);
-            pvp.onClick.AddListener(() => { MatchSettings.Mode = GameMode.PvP; SceneManager.LoadScene("Duel"); });
+            pvp.onClick.AddListener(() => { MatchSettings.Mode = GameMode.PvP; DuelFlow.Duel(); });
 
             var pve = MakeButton(p, "HomePvE", "PvE  CAMPAIGN", new Vector2(0.5f, 0.135f), Vector2.zero, 660, 150, 56, new Color(0.70f, 0.52f, 0.24f), out _, true);
             pve.onClick.AddListener(() =>
             {
                 MatchSettings.Mode = GameMode.PvE;
-                if (Campaign.HasSavedRun) SceneManager.LoadScene("Map");
-                else { Campaign.StartRun(); Story.Kind = StoryKind.ChapterIntro; SceneManager.LoadScene("Story"); }
+                if (Campaign.HasSavedRun) DuelFlow.Map();
+                else { Campaign.StartRun(); DuelFlow.Story(StoryKind.ChapterIntro); }
             });
         }
 
@@ -245,7 +245,7 @@ namespace HighNoon
             if (Campaign.HasSavedRun)
             {
                 var cont = MakeButton(p, "Continue", "CONTINUE CAMPAIGN", new Vector2(0.5f, 0.26f), Vector2.zero, 620, 92, 40, new Color(0.55f, 0.70f, 0.40f), out _, true);
-                cont.onClick.AddListener(() => { MatchSettings.Mode = GameMode.PvE; SceneManager.LoadScene("Map"); });
+                cont.onClick.AddListener(() => { MatchSettings.Mode = GameMode.PvE; DuelFlow.Map(); });
             }
 
             var play = MakeButton(p, "Play", "PLAY", new Vector2(0.5f, 0.135f), Vector2.zero, 620, 140, 66, Gold, out _, true);
@@ -254,10 +254,9 @@ namespace HighNoon
                 if (MatchSettings.Mode == GameMode.PvE)
                 {
                     Campaign.StartRun();
-                    Story.Kind = StoryKind.ChapterIntro;
-                    SceneManager.LoadScene("Story");
+                    DuelFlow.Story(StoryKind.ChapterIntro);
                 }
-                else SceneManager.LoadScene("Duel");
+                else DuelFlow.Duel();
             });
         }
 
@@ -268,7 +267,7 @@ namespace HighNoon
             MakeText(p, "Head", "SETTINGS", 60, new Vector2(0.5f, 0.92f), Vector2.zero, 900, 100, Gold, FontStyle.Bold);
 
             var sfx = MakeButton(p, "SfxToggle", "SFX", new Vector2(0.5f, 0.74f), Vector2.zero, 640, 110, 44, Normal, out _sfxImg, true);
-            var mus = MakeButton(p, "MusicToggle", "MUSIC", new Vector2(0.5f, 0.61f), Vector2.zero, 640, 110, 44, Normal, out _musicImg, true);
+            var mus = MakeButton(p, "MusicToggle", "MUSIC / WIND", new Vector2(0.5f, 0.61f), Vector2.zero, 640, 110, 40, Normal, out _musicImg, true);
             var vib = MakeButton(p, "VibToggle", "VIBRATION", new Vector2(0.5f, 0.48f), Vector2.zero, 640, 110, 44, Normal, out _vibImg, true);
             _sfxLabel = sfx.GetComponentInChildren<Text>();
             _musicLabel = mus.GetComponentInChildren<Text>();
@@ -278,7 +277,7 @@ namespace HighNoon
             vib.onClick.AddListener(() => { GameSettings.HapticsEnabled = !GameSettings.HapticsEnabled; RefreshHighlights(); Haptics.Medium(); });
 
             var howto = MakeButton(p, "HowTo", "HOW TO PLAY", new Vector2(0.5f, 0.31f), Vector2.zero, 640, 110, 42, new Color(0.60f, 0.50f, 0.34f), out _, true);
-            howto.onClick.AddListener(() => SceneManager.LoadScene("Tutorial"));
+            howto.onClick.AddListener(() => DuelFlow.Tutorial());
         }
 
         // ---------- shared ----------
@@ -325,7 +324,7 @@ namespace HighNoon
             SetAlpha(_easyImg, da); SetAlpha(_normalImg, da); SetAlpha(_hardImg, da);
 
             if (_sfxImg != null) { _sfxImg.color = GameSettings.SfxEnabled ? Selected : Disabled; if (_sfxLabel != null) _sfxLabel.text = GameSettings.SfxEnabled ? "SFX: ON" : "SFX: OFF"; }
-            if (_musicImg != null) { _musicImg.color = GameSettings.MusicEnabled ? Selected : Disabled; if (_musicLabel != null) _musicLabel.text = GameSettings.MusicEnabled ? "MUSIC: ON" : "MUSIC: OFF"; }
+            if (_musicImg != null) { _musicImg.color = GameSettings.MusicEnabled ? Selected : Disabled; if (_musicLabel != null) _musicLabel.text = GameSettings.MusicEnabled ? "MUSIC / WIND: ON" : "MUSIC / WIND: OFF"; }
             if (_vibImg != null) { _vibImg.color = GameSettings.HapticsEnabled ? Selected : Disabled; if (_vibLabel != null) _vibLabel.text = GameSettings.HapticsEnabled ? "VIBRATION: ON" : "VIBRATION: OFF"; }
 
             RefreshWeapon();

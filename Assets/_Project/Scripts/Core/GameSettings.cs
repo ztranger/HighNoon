@@ -39,38 +39,42 @@ namespace HighNoon
         public static int SelectedWeapon
         {
             get { Load(); return _weapon; }
-            set { Load(); _weapon = value; PlayerPrefs.SetInt(KWeapon, value); PlayerPrefs.Save(); }
+            set { Load(); _weapon = value; PlayerPrefs.SetInt(KWeapon, value); SaveData.Save(); }
         }
 
+        /// <summary>
+        /// Gates both the menu/map playlist and duel wind ambience
+        /// (<see cref="MusicPlayer"/>). One flag on purpose — the SOUND tab label is MUSIC / WIND.
+        /// </summary>
         public static bool MusicEnabled
         {
             get { Load(); return _music; }
-            set { Load(); _music = value; PlayerPrefs.SetInt(KMusic, value ? 1 : 0); PlayerPrefs.Save(); }
+            set { Load(); _music = value; PlayerPrefs.SetInt(KMusic, value ? 1 : 0); SaveData.Save(); }
         }
 
         /// <summary>True once the player has seen (or skipped) the tutorial. Auto-shown on first launch.</summary>
         public static bool TutorialDone
         {
             get { Load(); return _tutorial; }
-            set { Load(); _tutorial = value; PlayerPrefs.SetInt(KTutorial, value ? 1 : 0); PlayerPrefs.Save(); }
+            set { Load(); _tutorial = value; PlayerPrefs.SetInt(KTutorial, value ? 1 : 0); SaveData.Save(); }
         }
 
         public static bool SfxEnabled
         {
             get { Load(); return _sfx; }
-            set { Load(); _sfx = value; PlayerPrefs.SetInt(KSfx, value ? 1 : 0); PlayerPrefs.Save(); }
+            set { Load(); _sfx = value; PlayerPrefs.SetInt(KSfx, value ? 1 : 0); SaveData.Save(); }
         }
 
         public static bool HapticsEnabled
         {
             get { Load(); return _haptics; }
-            set { Load(); _haptics = value; PlayerPrefs.SetInt(KHaptics, value ? 1 : 0); PlayerPrefs.Save(); }
+            set { Load(); _haptics = value; PlayerPrefs.SetInt(KHaptics, value ? 1 : 0); SaveData.Save(); }
         }
 
         public static float MasterVolume
         {
             get { Load(); return _volume; }
-            set { Load(); _volume = Mathf.Clamp01(value); PlayerPrefs.SetFloat(KVolume, _volume); PlayerPrefs.Save(); }
+            set { Load(); _volume = Mathf.Clamp01(value); PlayerPrefs.SetFloat(KVolume, _volume); SaveData.Save(); }
         }
 
         /// <summary>Effective SFX gain: master volume, or 0 when SFX are muted.</summary>

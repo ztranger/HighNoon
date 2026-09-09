@@ -45,7 +45,14 @@ namespace HighNoon
             _anim.Play(_frames.Idle, 3f, loop: true);
         }
 
-        public IEnumerator WalkIn(float duration)
+        /// <summary>Walk-in runs on this view so <see cref="SetIdleOffscreen"/> can stop it.</summary>
+        public void BeginWalkIn(float duration)
+        {
+            StopAllCoroutines();
+            StartCoroutine(WalkIn(duration));
+        }
+
+        IEnumerator WalkIn(float duration)
         {
             _anim.Play(_frames.Idle, 6f, loop: true); // brisker "walking" bob
             float t = 0f;

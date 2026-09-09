@@ -2,7 +2,6 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
-using UnityEngine.SceneManagement;
 using UnityEngine.InputSystem.UI;
 
 namespace HighNoon
@@ -134,7 +133,7 @@ namespace HighNoon
                 .rectTransform.anchoredPosition = new Vector2(0f, -700f);
             var menu = MakeButton("MenuButton", "MENU", new Vector2(0.5f, 0.5f), 360, 110, 44, Locked);
             ((RectTransform)menu.transform).anchoredPosition = new Vector2(0f, -850f);
-            menu.onClick.AddListener(() => SceneManager.LoadScene("MainMenu"));
+            menu.onClick.AddListener(() => DuelFlow.Menu());
 
             if (_pulseNode != null) StartCoroutine(Pulse());
         }
@@ -143,7 +142,7 @@ namespace HighNoon
         {
             Sfx.Click(); Haptics.Light();
             Campaign.ShowIntro = true; // play this stage's intro banter before the duel
-            SceneManager.LoadScene("Duel");
+            DuelFlow.Duel();
         }
 
         IEnumerator Pulse()

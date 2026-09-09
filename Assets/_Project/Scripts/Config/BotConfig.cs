@@ -23,5 +23,15 @@ namespace HighNoon
         public float falseStartChance = 0f;
 
         public float RollReaction() => Random.Range(reactionMin, reactionMax);
+
+        /// <summary>Restore field defaults. Used when a session-cached runtime instance
+        /// is reused without <see cref="MatchSettings.ApplyDifficulty"/>.</summary>
+        public void ApplyDefaults()
+        {
+            displayName = "Bot";
+            reactionMin = 0.28f;
+            reactionMax = 0.45f;
+            falseStartChance = 0f;
+        }
     }
 }

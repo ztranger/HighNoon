@@ -71,18 +71,7 @@ namespace HighNoon
             Hud.HideAll();
             foreach (var d in active) d.ResetRound();
 
-            Phase = DuelPhase.Intro;
-            if (doIntro)
-            {
-                foreach (var d in active) d.View.SetIdleOffscreen();
-                yield return null;
-                foreach (var d in active) StartCoroutine(d.View.WalkIn(Config.introDuration));
-                yield return new WaitForSeconds(Config.introDuration);
-            }
-
-            Phase = DuelPhase.Stance;
-            foreach (var d in active) d.View.Stance();
-            yield return new WaitForSeconds(Config.stancePause);
+            yield return StartCoroutine(PlayIntroAndStance(active, doIntro));
 
             Phase = DuelPhase.Tension;
             foreach (var d in active) d.Input.Arm();
@@ -150,7 +139,7 @@ namespace HighNoon
                     for (int i = 0; i < laneCount; i++)
                     {
                         if (resolved[i] || byLane[i].Count == 0) continue;
-                        if (!TryPickLaneWinner(byLane[i], _bangTime, out var winner)) continue;
+                        if (!DuelResolve.TryPickLaneWinner(byLane[i], _bangTime, out var winner)) continue;
                         DecideLane(byLane[i], winner); // winner == null → equal times, lane draw
                         resolved[i] = true;
                         resolvedCount++;
@@ -192,6 +181,22 @@ namespace HighNoon
 
             Phase = DuelPhase.Resolved;
             yield return StartCoroutine(ShowRoundResults(active));
+        }
+
+        IEnumerator PlayIntroAndStance(List<Duelist> active, bool doIntro)
+        {
+            Phase = DuelPhase.Intro;
+            if (doIntro)
+            {
+                foreach (var d in active) d.View.SetIdleOffscreen();
+                yield return null;
+                foreach (var d in active) d.View.BeginWalkIn(Config.introDuration);
+                yield return new WaitForSeconds(Config.introDuration);
+            }
+
+            Phase = DuelPhase.Stance;
+            foreach (var d in active) d.View.Stance();
+            yield return new WaitForSeconds(Config.stancePause);
         }
 
         void TickInputs(List<Duelist> active, double now)
@@ -239,37 +244,6 @@ namespace HighNoon
         {
             foreach (var d in active)
                 if (!d.Input.HasFired) return false;
-            return true;
-        }
-
-        /// <summary>
-        /// Earliest valid post-BANG fire in the group. Equal best times are a lane draw
-        /// (<paramref name="winner"/> is null) — not a list-order win.
-        /// Returns false if nobody has a valid fire yet.
-        /// </summary>
-        static bool TryPickLaneWinner(List<Duelist> group, double bangTime, out Duelist winner)
-        {
-            winner = null;
-            double best = double.MaxValue;
-            int bestCount = 0;
-            foreach (var d in group)
-            {
-                if (!d.Input.HasFired) continue;
-                double t = d.Input.FireTimeRealtime;
-                if (t < bangTime) continue;
-                if (t < best)
-                {
-                    best = t;
-                    winner = d;
-                    bestCount = 1;
-                }
-                else if (t == best)
-                {
-                    bestCount++;
-                }
-            }
-            if (bestCount == 0) return false;
-            if (bestCount > 1) winner = null;
             return true;
         }
 
@@ -364,18 +338,7 @@ namespace HighNoon
             Hud.HideAll();
             foreach (var d in active) d.ResetRound();
 
-            Phase = DuelPhase.Intro;
-            if (doIntro)
-            {
-                foreach (var d in active) d.View.SetIdleOffscreen();
-                yield return null;
-                foreach (var d in active) StartCoroutine(d.View.WalkIn(Config.introDuration));
-                yield return new WaitForSeconds(Config.introDuration);
-            }
-
-            Phase = DuelPhase.Stance;
-            foreach (var d in active) d.View.Stance();
-            yield return new WaitForSeconds(Config.stancePause);
+            yield return StartCoroutine(PlayIntroAndStance(active, doIntro));
 
             // --- Build the bars. Humans always aim; bots only get a (self-aiming) bar in PvP/Coop. ---
             TimingTuning(out float greenHalf, out float sweepSpeed);
@@ -515,15 +478,7 @@ namespace HighNoon
             foreach (var lane in lanes)
             {
                 var g = active.Where(d => d.Lane == lane).ToList();
-                Duelist winner = null;
-                float best = float.MaxValue;
-                bool tie = false;
-                foreach (var d in g)
-                {
-                    if (d.AimError < best - 0.0001f) { best = d.AimError; winner = d; tie = false; }
-                    else if (Mathf.Abs(d.AimError - best) <= 0.0001f) tie = true;
-                }
-                if (tie) winner = null; // dead heat → nobody survives this lane
+                var winner = DuelResolve.PickTimingWinner(g); // null → dead heat, nobody survives
 
                 foreach (var d in g)
                 {
@@ -626,7 +581,7 @@ namespace HighNoon
                 return;
             }
 
-            Hud.ShowResult(msg, "REMATCH", OnRematch, "MENU", OnMenu);
+            Hud.ShowResult(msg, "REMATCH", OnRematch, "MENU", DuelFlow.Menu);
         }
 
         void ShowPveResult(bool playerWon)
@@ -636,17 +591,17 @@ namespace HighNoon
                 if (Campaign.IsFinalStage)
                 {
                     Campaign.EndRun(victory: true);   // clears the save + counts a completion
-                    GoStory(StoryKind.Victory);
+                    DuelFlow.Story(StoryKind.Victory);
                 }
                 else if (Campaign.IsLastStageOfChapter)
                 {
                     Campaign.AdvanceStage();          // into the next chapter → intro screen (persists)
-                    GoStory(StoryKind.ChapterIntro);
+                    DuelFlow.Story(StoryKind.ChapterIntro);
                 }
                 else
                 {
                     Campaign.AdvanceStage();          // persists progress
-                    Hud.ShowResult($"STAGE CLEARED!\nNext: {Campaign.CurrentStage.Title}", "MAP", LoadMap, "MENU", OnMenu);
+                    Hud.ShowResult($"STAGE CLEARED!\nNext: {Campaign.CurrentStage.Title}", "MAP", DuelFlow.Map, "MENU", DuelFlow.Menu);
                 }
             }
             else
@@ -655,24 +610,15 @@ namespace HighNoon
                 if (Campaign.Lives <= 0)
                 {
                     Campaign.EndRun(victory: false);
-                    GoStory(StoryKind.Defeat);
+                    DuelFlow.Story(StoryKind.Defeat);
                 }
                 else
                 {
-                    Hud.ShowResult($"YOU DIED\nLives left: {Campaign.Lives}", "RETRY", ReloadDuel, "MAP", LoadMap);
+                    Hud.ShowResult($"YOU DIED\nLives left: {Campaign.Lives}", "RETRY", DuelFlow.Duel, "MAP", DuelFlow.Map);
                 }
             }
         }
 
         void OnRematch() => StartDuel();
-        void OnMenu() => UnityEngine.SceneManagement.SceneManager.LoadScene("MainMenu");
-        void LoadMap() => UnityEngine.SceneManagement.SceneManager.LoadScene("Map");
-        void ReloadDuel() => UnityEngine.SceneManagement.SceneManager.LoadScene("Duel");
-
-        void GoStory(StoryKind kind)
-        {
-            Story.Kind = kind;
-            UnityEngine.SceneManagement.SceneManager.LoadScene("Story");
-        }
     }
 }

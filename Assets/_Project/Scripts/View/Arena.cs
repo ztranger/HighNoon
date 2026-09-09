@@ -22,6 +22,29 @@ namespace HighNoon
         public Color? SkyHorizon;  // colour where the sky meets the land
         public Color? Sun;         // low sun / moon disc behind the standoff
         public Color? Hill;        // distant silhouette (hills / buttes / rooftops)
+
+        /// <summary>
+        /// Stable RNG seed for ground / silhouette. Do not use <c>Name.GetHashCode()</c> —
+        /// that is not guaranteed equal in Editor vs IL2CPP, so a PvE mission would
+        /// get a different ground on device.
+        /// </summary>
+        public int Seed;
+
+        /// <summary>Seed used by <see cref="BackgroundBuilder"/>; falls back to a stable FNV of Name.</summary>
+        public int RngSeed => Seed != 0 ? Seed : StableHash(Name);
+
+        /// <summary>FNV-1a 32-bit — same value on Mono and IL2CPP.</summary>
+        public static int StableHash(string s)
+        {
+            unchecked
+            {
+                int hash = (int)2166136261u;
+                if (!string.IsNullOrEmpty(s))
+                    for (int i = 0; i < s.Length; i++)
+                        hash = (hash ^ s[i]) * 16777619;
+                return hash == 0 ? 1 : hash;
+            }
+        }
     }
 
     /// <summary>
@@ -34,7 +57,7 @@ namespace HighNoon
         {
             new ArenaDef
             {
-                Name = "Prairie", Style = ArenaStyle.Prairie,
+                Name = "Prairie", Seed = 1101, Style = ArenaStyle.Prairie,
                 GroundBase = new Color(0.82f, 0.70f, 0.42f),
                 GroundShade = new Color(0.72f, 0.60f, 0.34f),
                 Speck = new Color(0.60f, 0.50f, 0.30f),
@@ -45,7 +68,7 @@ namespace HighNoon
             },
             new ArenaDef
             {
-                Name = "Dusty Town", Style = ArenaStyle.Town,
+                Name = "Dusty Town", Seed = 1102, Style = ArenaStyle.Town,
                 GroundBase = new Color(0.64f, 0.52f, 0.38f),
                 GroundShade = new Color(0.54f, 0.43f, 0.30f),
                 Speck = new Color(0.42f, 0.33f, 0.22f),
@@ -56,7 +79,7 @@ namespace HighNoon
             },
             new ArenaDef
             {
-                Name = "Red Canyon", Style = ArenaStyle.Desert,
+                Name = "Red Canyon", Seed = 1103, Style = ArenaStyle.Desert,
                 GroundBase = new Color(0.80f, 0.52f, 0.36f),
                 GroundShade = new Color(0.68f, 0.40f, 0.27f),
                 Speck = new Color(0.52f, 0.30f, 0.22f),
@@ -67,7 +90,7 @@ namespace HighNoon
             },
             new ArenaDef
             {
-                Name = "Boot Hill", Style = ArenaStyle.Graveyard,
+                Name = "Boot Hill", Seed = 1104, Style = ArenaStyle.Graveyard,
                 GroundBase = new Color(0.44f, 0.46f, 0.42f),
                 GroundShade = new Color(0.35f, 0.37f, 0.34f),
                 Speck = new Color(0.27f, 0.29f, 0.27f),
@@ -78,7 +101,7 @@ namespace HighNoon
             },
             new ArenaDef
             {
-                Name = "Green Valley", Style = ArenaStyle.Ranch,
+                Name = "Green Valley", Seed = 1105, Style = ArenaStyle.Ranch,
                 GroundBase = new Color(0.52f, 0.62f, 0.34f),
                 GroundShade = new Color(0.42f, 0.52f, 0.28f),
                 Speck = new Color(0.34f, 0.44f, 0.24f),
@@ -89,7 +112,7 @@ namespace HighNoon
             },
             new ArenaDef
             {
-                Name = "Salt Flats", Style = ArenaStyle.Desert,
+                Name = "Salt Flats", Seed = 1106, Style = ArenaStyle.Desert,
                 GroundBase = new Color(0.86f, 0.84f, 0.74f),
                 GroundShade = new Color(0.78f, 0.76f, 0.66f),
                 Speck = new Color(0.66f, 0.64f, 0.56f),
@@ -100,7 +123,7 @@ namespace HighNoon
             },
             new ArenaDef
             {
-                Name = "Painted Hills", Style = ArenaStyle.Prairie,
+                Name = "Painted Hills", Seed = 1107, Style = ArenaStyle.Prairie,
                 GroundBase = new Color(0.88f, 0.62f, 0.44f),
                 GroundShade = new Color(0.78f, 0.48f, 0.40f),
                 Speck = new Color(0.62f, 0.36f, 0.34f),
@@ -111,7 +134,7 @@ namespace HighNoon
             },
             new ArenaDef
             {
-                Name = "Ghost Town", Style = ArenaStyle.Town,
+                Name = "Ghost Town", Seed = 1108, Style = ArenaStyle.Town,
                 GroundBase = new Color(0.58f, 0.54f, 0.50f),
                 GroundShade = new Color(0.47f, 0.44f, 0.40f),
                 Speck = new Color(0.35f, 0.33f, 0.30f),
@@ -122,7 +145,7 @@ namespace HighNoon
             },
             new ArenaDef
             {
-                Name = "Midnight Mesa", Style = ArenaStyle.Desert,
+                Name = "Midnight Mesa", Seed = 1109, Style = ArenaStyle.Desert,
                 GroundBase = new Color(0.28f, 0.30f, 0.44f),
                 GroundShade = new Color(0.19f, 0.21f, 0.34f),
                 Speck = new Color(0.13f, 0.14f, 0.24f),
@@ -133,7 +156,7 @@ namespace HighNoon
             },
             new ArenaDef
             {
-                Name = "Gallows Hill", Style = ArenaStyle.Graveyard,
+                Name = "Gallows Hill", Seed = 1110, Style = ArenaStyle.Graveyard,
                 GroundBase = new Color(0.37f, 0.39f, 0.37f),
                 GroundShade = new Color(0.28f, 0.30f, 0.29f),
                 Speck = new Color(0.19f, 0.21f, 0.20f),
@@ -144,7 +167,7 @@ namespace HighNoon
             },
             new ArenaDef
             {
-                Name = "Devil's Crossroads", Style = ArenaStyle.Desert,
+                Name = "Devil's Crossroads", Seed = 1111, Style = ArenaStyle.Desert,
                 GroundBase = new Color(0.44f, 0.23f, 0.20f),
                 GroundShade = new Color(0.31f, 0.15f, 0.14f),
                 Speck = new Color(0.21f, 0.10f, 0.10f),

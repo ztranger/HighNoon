@@ -1,7 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
-using UnityEngine.SceneManagement;
 using UnityEngine.InputSystem.UI;
 
 namespace HighNoon
@@ -73,7 +72,7 @@ namespace HighNoon
 
             Cowboy(new Vector2(0f, -170f), new Vector2(260f, 340f));
 
-            Button("Begin", "BEGIN", -560f, 560, 150, 66, Gold, () => SceneManager.LoadScene("Map"));
+            Button("Begin", "BEGIN", -560f, 560, 150, 66, Gold, DuelFlow.Map);
         }
 
         void BuildVictory()
@@ -88,7 +87,7 @@ namespace HighNoon
                 new Color(0.92f, 0.88f, 0.78f), FontStyle.Normal);
 
             Button("Again", "PLAY AGAIN", -520f, 620, 140, 60, Btn, Restart);
-            Button("Menu", "MENU", -680f, 420, 120, 52, new Color(0.45f, 0.4f, 0.3f), () => SceneManager.LoadScene("MainMenu"));
+            Button("Menu", "MENU", -680f, 420, 120, 52, new Color(0.45f, 0.4f, 0.3f), DuelFlow.Menu);
         }
 
         void BuildDefeat()
@@ -103,14 +102,13 @@ namespace HighNoon
                 new Color(0.82f, 0.8f, 0.78f), FontStyle.Normal);
 
             Button("Again", "TRY AGAIN", -520f, 620, 140, 60, Btn, Restart);
-            Button("Menu", "MENU", -680f, 420, 120, 52, new Color(0.4f, 0.38f, 0.36f), () => SceneManager.LoadScene("MainMenu"));
+            Button("Menu", "MENU", -680f, 420, 120, 52, new Color(0.4f, 0.38f, 0.36f), DuelFlow.Menu);
         }
 
         void Restart()
         {
             Campaign.StartRun();
-            Story.Kind = StoryKind.ChapterIntro;
-            SceneManager.LoadScene("Story");
+            DuelFlow.Story(StoryKind.ChapterIntro);
         }
 
         // ---- builders ----

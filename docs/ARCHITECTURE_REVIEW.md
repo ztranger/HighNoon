@@ -61,7 +61,7 @@ Deliberate product constraints (from `CLAUDE.md`) — do not violate:
 - **`MainMenuBootstrap`** owns all five tabs (STATS / GUNS / HOME / SETUP / SOUND) as one class.
 - **`RunRound` and `RunTimingRound`** duplicate the intro walk-in + stance ritual.
 
-When touching duel flow, extract a shared `PlayIntroAndStance(active, doIntro)` coroutine rather than copying again. Scene routing (`OnMenu`, `LoadMap`, `GoStory`, `ShowPveResult`) should eventually leave `DuelManager` (a tiny `DuelFlow` / static navigator is enough — not a framework).
+**Done 2026-09-09.** Shared `PlayIntroAndStance`. Scene loads go through `DuelFlow`. Decide-step is `DuelResolve` (Edit Mode tests in `Assets/_Project/Tests/Editor`). `ShowPveResult` still lives on the manager (campaign mutators + HUD) — that's game flow, not navigation.
 
 ### 3.2 Static bags instead of a session
 
@@ -75,6 +75,8 @@ Today:
 
 Each PlayerPrefs writer calls `PlayerPrefs.Save()` itself. The META doc already names the fix: one `SaveData` + `Economy.Grant/Spend`. Until then, **keep using the existing mutators** (`Campaign.Save`, `Records.Report*`, `GameSettings` setters). Do not invent a second save path.
 
+**Done 2026-09-09 (flush seam).** Mutators still own the keys. They call `SaveData.Save()` (the only `PlayerPrefs.Save`). A typed blob + `Economy.Grant/Spend` still wait for META §1.
+
 ### 3.3 Content in C#
 
 `Campaign.Chapters`, `Arenas.All`, `Weapons.All`, dialog lines — arrays in code. Fine for 13 stages. Not fine for localization, seasonal content, or designer-only balance. Do not migrate to ScriptableObject catalogs until a human actually needs to edit them without a rebuild.
@@ -86,6 +88,8 @@ Every screen is `new GameObject` + uGUI `Text` (legacy font). Fast for MCP, pain
 ### 3.5 No asmdef, no tests
 
 Everything is `Assembly-CSharp`. Lane resolve, false-start, Timing PvE "all humans must hit green", and timestamp comparison are pure logic and should become Edit Mode tests once extracted from the MonoBehaviour coroutine. Do not add Play Mode tests as the first step — extract the decide step first.
+
+**Done 2026-09-09 (decide + tests).** `DuelResolve.TryPickLaneWinner` / `PickTimingWinner` + Edit Mode tests (`HighNoon.Tests.Editor`). Gameplay stays `Assembly-CSharp`. One Editor test asmdef only — not a split of the 42 gameplay files. Timing PvE "all humans must hit green" is still in `ResolveTimingPve` (FX + views); extract later if it grows.
 
 ---
 
@@ -137,7 +141,9 @@ Allocated with no `Destroy` today:
 
 Also: `ScriptableObject.CreateInstance<BotConfig>()` / `DuelConfig` each Duel load when using match settings — runtime SOs leak until domain unload.
 
-**Done 2026-09-09.** Session caches by look / weapon index / prop name / arena name / tumbleweed. Dialog portraits reuse `DuelistView.IdlePortrait`. `ProcSprites.Destroy` is there for uncached one-offs. Runtime SOs (`BotConfig`/`DuelConfig`) are a separate item.
+**Done 2026-09-09.** Session caches by look / weapon index / prop name / arena name / tumbleweed. Dialog portraits reuse `DuelistView.IdlePortrait`. `ProcSprites.Destroy` is there for uncached one-offs.
+
+**Done 2026-09-09 (runtime SOs).** `DuelBootstrap` reuses one `HideAndDontSave` `DuelConfig` / `BotConfig` per session. Match-settings still `ApplyDifficulty` onto the cached bot; Play-from-Duel with an empty slot calls `BotConfig.ApplyDefaults` so a prior difficulty does not stick.
 
 **Files:** `View/CowboyArt.cs`, `View/DuelistView.cs`, `View/BackgroundBuilder.cs`, `View/PropArt.cs`, `View/PlaceholderArt.cs`, `View/WeaponArt.cs`, `View/Tumbleweed.cs`, `UI/DialogBox.cs` + `DuelBootstrap` intro portraits, `Core/DuelBootstrap.cs` (SO instances).
 
@@ -150,7 +156,7 @@ Lives = Mathf.Max(1, PlayerPrefs.GetInt(KLives, StartingLives));
 
 If `Active == true` and `Lives == 0` (crash between `LoseLife` and `EndRun`), the player gets a free life. `LoadSavedRun` also writes `Chapter`/`Stage` from prefs even when `Active == false`. Map/Duel already guard with `if (!Campaign.Active) Campaign.StartRun()` — keep that; still don't resurrect 0 lives.
 
-**Fix:** if `!Active`, don't hydrate run fields (or reset them). If `Active && Lives <= 0`, treat as ended run (`EndRun(false)`), not `Max(1)`.
+**Done 2026-09-09.** `!Active` resets chapter/stage/lives in memory and does not read those prefs keys. `Active && Lives <= 0` calls `EndRun(false)` (no free life).
 
 **Files:** `Core/Campaign.cs`.
 
@@ -158,7 +164,7 @@ If `Active == true` and `Lives == 0` (crash between `LoseLife` and `EndRun`), th
 
 `BuildPve` two-player branch assigns the same `oppLook` and the same `Title` to both top bots. They read as twins.
 
-**Fix:** second look (tint / hat / accessory variant) and labels (`"{Title} 1"` / `" 2"`, or a `StageDef.PartnerLook`).
+**Done 2026-09-09.** `CowboyLook.Partner` shifts hat / chest / facial / shirt. PvE 2v2 labels are `"{Title} 1"` / `" 2"`. Coop bots are `BOT 1` / `BOT 2` with the same partner look.
 
 **Files:** `Core/DuelBootstrap.cs`, optionally `Core/Campaign.cs` `StageDef`.
 
@@ -168,6 +174,8 @@ If `Active == true` and `Lives == 0` (crash between `LoseLife` and `EndRun`), th
 - Menu toggle **MUSIC** also mutes duel wind (`MusicPlayer` gates both layers on `GameSettings.MusicEnabled`). Either rename the toggle (MUSIC / AMBIENCE) or split a flag. Product call; don't silently change feel.
 - Arena ground seed is `def.Name.GetHashCode()`. `string.GetHashCode()` is not guaranteed stable across editor vs IL2CPP / CoreCLR. PvE "this mission = this ground" should use an explicit `int Seed` on `ArenaDef`.
 - `DuelistView.WalkIn` is started via `DuelManager.StartCoroutine(...)`, so it runs on the manager, not the view. `SetIdleOffscreen` → `StopAllCoroutines()` on the **view** does not stop WalkIn. Harmless today because rematch does `StopAllCoroutines` on the manager; still the wrong host if someone later starts WalkIn on the view.
+
+**Done 2026-09-09.** Stale `GameMode` comment removed. MUSIC toggle renamed **MUSIC / WIND** (same `MusicEnabled` flag — no feel change). Each `ArenaDef` has an explicit `Seed`; `BackgroundBuilder` uses `def.RngSeed` (FNV-of-name fallback if Seed is 0). `DuelistView.BeginWalkIn` hosts the coroutine so `SetIdleOffscreen` actually stops it.
 
 ---
 
@@ -189,7 +197,7 @@ A duel is decided in ~200–400 ms. Work in Tension/Bang must be allocation-free
 
 `Haptics.Light()` from `FireFxForNew` / `PlayShootFx` constructs `VibrationEffect.createOneShot` via `AndroidJavaObject` every call. JNI + GC on the same frame as the gunshot.
 
-**Fix:** reuse one cached `VibrationEffect` per (duration, amplitude), or defer Heavy/Light to the frame *after* decide. `Handheld.Vibrate()` fallback is ~500 ms — do not use it on a gunshot if the vibrator object is null; skip instead.
+**Done 2026-09-09.** One cached `VibrationEffect` per Light/Medium/Heavy/Success; `VibrationEffect` class is held for the session. `Light()` never falls back to `Handheld.Vibrate()` (that call is a ~500 ms buzz). Medium/Heavy/Success still may, if `getSystemService("vibrator")` failed — keeps the VIBRATE permission reference. Device-only: prove on a phone.
 
 **Files:** `Core/Haptics.cs`, call sites in `DuelManager`.
 
@@ -230,27 +238,27 @@ Check boxes as you complete work. Prefer one item (or a tight pair) per change.
 
 - [x] **Cache + Destroy procedural textures** (cowboy frames, weapons, ground, props, tumbleweed). Don't rebuild portraits in the dialog if the duelist already has frames. (`ProcSprites.Make` + session caches in `CowboyArt`/`PropArt`/`PlaceholderArt`/`BackgroundBuilder`. Dialog uses `DuelistView.IdlePortrait`. Cached sprites are `HideAndDontSave` and live for the session — Destroy-on-teardown would fight the cache.)
 - [x] **Cache `WeaponArt.For(index)`**; don't allocate on every carousel click.
-- [ ] **Don't leak runtime ScriptableObjects** (`BotConfig` / `DuelConfig` `CreateInstance`).
-- [ ] **Haptics:** cache JNI effects; never `Handheld.Vibrate()` on a 18 ms gunshot tick.
+- [x] **Don't leak runtime ScriptableObjects** (`BotConfig` / `DuelConfig` `CreateInstance`). (`DuelBootstrap` session-cached `HideAndDontSave` instances; `BotConfig.ApplyDefaults` when Play-from-Duel reuses the bot slot.)
+- [x] **Haptics:** cache JNI effects; never `Handheld.Vibrate()` on a 18 ms gunshot tick. (`Haptics` caches one `VibrationEffect` per Light/Medium/Heavy/Success; `Light()` skips if the vibrator object is null.)
 
 ### P1 — campaign save
 
-- [ ] **`LoadSavedRun`:** don't `Max(1)` a zero-life active run; don't hydrate chapter/stage when `!Active`.
+- [x] **`LoadSavedRun`:** don't `Max(1)` a zero-life active run; don't hydrate chapter/stage when `!Active`. (`Campaign.LoadSavedRun` — inactive resets fields; `Lives <= 0` → `EndRun(false)`.)
 
 ### P2 — content / polish (when touching those files)
 
-- [ ] Distinct look + labels for PvE 2v2 bots.
-- [ ] Explicit `ArenaDef.Seed` instead of `Name.GetHashCode()`.
-- [ ] Stale `MatchSettings` comment; MUSIC vs wind toggle product decision.
-- [ ] Host `WalkIn` on `DuelistView` (or stop it from the same MB that started it).
+- [x] Distinct look + labels for PvE 2v2 bots. (`CowboyLook.Partner`; PvE labels `Title 1`/`2`; Coop `BOT 1`/`2`.)
+- [x] Explicit `ArenaDef.Seed` instead of `Name.GetHashCode()`. (`ArenaDef.Seed` 1101–1111; `BackgroundBuilder` uses `RngSeed`.)
+- [x] Stale `MatchSettings` comment; MUSIC vs wind toggle product decision. (Comment dropped. Toggle label is **MUSIC / WIND**; still one `MusicEnabled` flag.)
+- [x] Host `WalkIn` on `DuelistView` (or stop it from the same MB that started it). (`DuelistView.BeginWalkIn`; manager no longer `StartCoroutine`s the view enumerator.)
 
 ### P3 — seams before meta (do not start META pillars without these)
 
-- [ ] Shared intro/stance coroutine used by Reaction and Timing.
-- [ ] Scene routing out of `DuelManager` (tiny navigator).
-- [ ] Single `SaveData` blob (settings + records + campaign) with one `Save()`; keep PlayerPrefs keys as the backend at first (META §1).
-- [ ] Extract `DecideLane` / timing contest to a testable static/pure class; add Edit Mode tests.
-- [ ] New UI as widgets/prefabs, not more tabs bolted onto `MainMenuBootstrap`.
+- [x] Shared intro/stance coroutine used by Reaction and Timing. (`DuelManager.PlayIntroAndStance` — both `RunRound` and `RunTimingRound`.)
+- [x] Scene routing out of `DuelManager` (tiny navigator). (`Core/DuelFlow.cs` — Menu / Map / Duel / Tutorial / Story. Bootstraps use it too.)
+- [x] Single `SaveData` blob (settings + records + campaign) with one `Save()`; keep PlayerPrefs keys as the backend at first (META §1). (`Core/SaveData.cs` — one flush. Keys stay on the mutators. Typed blob / Economy still META.)
+- [x] Extract `DecideLane` / timing contest to a testable static/pure class; add Edit Mode tests. (`DuelResolve` + `Assets/_Project/Tests/Editor/DuelResolveTests.cs`. Visual `DecideLane` FX stays on the manager.)
+- [ ] New UI as widgets/prefabs, not more tabs bolted onto `MainMenuBootstrap`. (Standing rule — do this when shop/pass UI lands, not a rewrite of the current 5 tabs.)
 
 Then follow [META_AND_PROGRESSION.md](META_AND_PROGRESSION.md) (economy → reputation/pass → cosmetics). That doc is still a **proposal**; this one is the engineering prerequisite.
 
@@ -264,9 +272,9 @@ Keep MRs small. A reasonable sequence:
 2. **`fix: decide-before-fx + no LINQ in bang loop`** — same file, separate commit if the diff is large. **Done 2026-09-09.**
 3. **`fix: lock 60 fps in AppInit`** — one-liner + comment. **Done 2026-09-09.**
 4. **`fix: cache/destroy procedural sprites`** — art helpers; behavior unchanged. **Done 2026-09-09.**
-5. **`fix: campaign LoadSavedRun zero-life / inactive hydrate`**
-6. **`refactor: shared intro/stance`** — only after P0 is green.
-7. Meta foundations from the other doc.
+5. **`fix: campaign LoadSavedRun zero-life / inactive hydrate`** **Done 2026-09-09.** (Same pass: runtime SO cache + haptics JNI cache.)
+6. **`refactor: shared intro/stance`** — **Done 2026-09-09** (same pass: `DuelFlow`, `SaveData.Save` flush, `DuelResolve` + Edit Mode tests).
+7. Meta foundations from the other doc. Remaining engineering rule: new meta UI as widgets, not extra `MainMenuBootstrap` tabs. Then economy blob (`Economy.Grant/Spend`) from META §1.
 
 Do not combine (1) with meta UI. Do not "while I'm here" rewrite `DuelManager` into a state-pattern class hierarchy.
 
@@ -276,8 +284,10 @@ Do not combine (1) with meta UI. Do not "while I'm here" rewrite `DuelManager` i
 
 | Concern | Files |
 |---|---|
-| Round loop, decide, PvE result routing | `Core/DuelManager.cs` |
+| Round loop, decide, PvE result routing | `Core/DuelManager.cs`, `Core/DuelResolve.cs` |
 | Scene assembly, zones, looks | `Core/DuelBootstrap.cs` |
+| Scene routing | `Core/DuelFlow.cs` |
+| Prefs flush | `Core/SaveData.cs` |
 | Per-cowboy runtime | `Core/Duelist.cs` |
 | Campaign content + save | `Core/Campaign.cs` |
 | Menu → duel carrier | `Core/MatchSettings.cs` |
@@ -291,6 +301,7 @@ Do not combine (1) with meta UI. Do not "while I'm here" rewrite `DuelManager` i
 | Menu | `UI/MainMenuBootstrap.cs` |
 | Audio | `Audio/AudioBank.cs`, `DuelAudio.cs`, `MusicPlayer.cs`, `Sfx.cs`, `ProcAudio.cs` |
 | Haptics | `Core/Haptics.cs` |
+| Edit Mode tests | `Assets/_Project/Tests/Editor/` (`DuelResolveTests`) |
 | Quality / vSync | `ProjectSettings/QualitySettings.asset` |
 
 ---
@@ -309,3 +320,5 @@ Do not combine (1) with meta UI. Do not "while I'm here" rewrite `DuelManager` i
 ## 10. Review notes (2026-09-09)
 
 Pass covered Core, Input, View, UI, Audio, Config. No automated tests existed to confirm runtime. Highest-confidence issues are the ones with a cited code path (timestamps, list-order ties, FX order, `new Texture2D`, LINQ in the bang `while`, `LoadSavedRun` `Max(1)`, Very Low / no `targetFrameRate`). Device-only items (haptics hitch, touch `startTime` vs editor mouse) need a phone to fully prove.
+
+Follow-up same day: P0–P2 done. P3 seams (shared intro/stance, `DuelFlow`, `SaveData` flush, `DuelResolve` + Edit Mode tests) are done. Standing leftover: new meta UI as widgets, not extra menu tabs. Then META §1 economy blob.

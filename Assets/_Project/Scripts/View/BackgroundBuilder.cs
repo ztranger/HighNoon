@@ -134,7 +134,7 @@ namespace HighNoon
 
             const int T = 128;
             var px = new Color32[T * T];
-            int seedInt = def.Name.GetHashCode();
+            int seedInt = def.RngSeed;
             float seed = (seedInt % 1000) * 0.01f;
             var rnd = new System.Random(seedInt);
 
@@ -182,7 +182,7 @@ namespace HighNoon
                 for (int x = x0; x <= x1; x++) Col(x, topY);
             }
 
-            var rnd = new System.Random(def.Name.GetHashCode() ^ 0x51ED);
+            var rnd = new System.Random(def.RngSeed ^ 0x51ED);
             int baseY = Mathf.RoundToInt(h * 0.30f);   // rolling-hill baseline
             float ph1 = (float)rnd.NextDouble() * 6.28f, ph2 = (float)rnd.NextDouble() * 6.28f;
 

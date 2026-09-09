@@ -250,19 +250,37 @@ namespace HighNoon
             PlayerPrefs.SetInt(KChapter, Chapter);
             PlayerPrefs.SetInt(KStage, Stage);
             PlayerPrefs.SetInt(KLives, Lives);
-            PlayerPrefs.Save();
+            SaveData.Save();
             HasSavedRun = Active;
         }
 
         /// <summary>Load the saved run into the static state (call once at app/menu start).</summary>
         public static void LoadSavedRun()
         {
+            ShowIntro = false;
             Active = PlayerPrefs.GetInt(KActive, 0) == 1;
+            if (!Active)
+            {
+                Chapter = 0;
+                Stage = 0;
+                Lives = StartingLives;
+                HasSavedRun = false;
+                return;
+            }
+
             Chapter = Mathf.Clamp(PlayerPrefs.GetInt(KChapter, 0), 0, Chapters.Length - 1);
             Stage = Mathf.Clamp(PlayerPrefs.GetInt(KStage, 0), 0, CurrentChapter.Stages.Length - 1);
-            Lives = Mathf.Max(1, PlayerPrefs.GetInt(KLives, StartingLives));
-            ShowIntro = false;
-            HasSavedRun = Active;
+            Lives = PlayerPrefs.GetInt(KLives, StartingLives);
+            if (Lives <= 0)
+            {
+                // Crash between LoseLife and EndRun — do not resurrect a free life.
+                EndRun(false);
+                Chapter = 0;
+                Stage = 0;
+                Lives = StartingLives;
+                return;
+            }
+            HasSavedRun = true;
         }
 
         public static ChapterDef CurrentChapter => Chapters[Mathf.Clamp(Chapter, 0, Chapters.Length - 1)];

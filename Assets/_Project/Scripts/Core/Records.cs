@@ -31,7 +31,7 @@ namespace HighNoon
             float best = BestReactionMs;
             if (best > 0f && ms >= best) return false;
             PlayerPrefs.SetFloat(KReaction, ms);
-            PlayerPrefs.Save();
+            SaveData.Save();
             return true;
         }
 
@@ -41,14 +41,14 @@ namespace HighNoon
             accuracy01 = Mathf.Clamp01(accuracy01);
             if (HasAccuracy && accuracy01 <= BestAccuracy) return false;
             PlayerPrefs.SetFloat(KAccuracy, accuracy01);
-            PlayerPrefs.Save();
+            SaveData.Save();
             return true;
         }
 
         public static void ReportCompletion()
         {
             PlayerPrefs.SetInt(KCompletions, Completions + 1);
-            PlayerPrefs.Save();
+            SaveData.Save();
         }
 
         /// <summary>Remember the furthest campaign node ever reached (chapter, then stage).</summary>
@@ -58,7 +58,7 @@ namespace HighNoon
             {
                 PlayerPrefs.SetInt(KFurthestCh, chapter);
                 PlayerPrefs.SetInt(KFurthestSt, stage);
-                PlayerPrefs.Save();
+                SaveData.Save();
             }
         }
     }
