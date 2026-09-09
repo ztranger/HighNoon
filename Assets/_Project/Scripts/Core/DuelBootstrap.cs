@@ -235,7 +235,6 @@ namespace HighNoon
                 var camGo = new GameObject("Main Camera") { tag = "MainCamera" };
                 cam = camGo.AddComponent<Camera>();
             }
-            Screen.orientation = ScreenOrientation.LandscapeLeft; // the duel plays in landscape (menus force portrait back)
             cam.orthographic = true;
             cam.orthographicSize = 4.4f; // landscape framing — gunslingers stand at x≈±5 across the street
             cam.transform.position = new Vector3(0f, 0f, -10f);

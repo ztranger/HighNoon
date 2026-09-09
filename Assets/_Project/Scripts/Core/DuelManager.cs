@@ -169,7 +169,7 @@ namespace HighNoon
                 d.ReactionSeconds = (!d.FalseStarted && _bangTime > 0 && d.Input.HasFired && d.Input.FireTimeRealtime >= _bangTime)
                     ? d.Input.FireTimeRealtime - _bangTime
                     : -1;
-                Vector3 wp = d.View.transform.position + Vector3.up * 1.6f; // landscape: both gunslingers upright, popup above each head
+                Vector3 wp = d.View.PopupAnchor; // pinned above each head (feet-pivoted real art or procedural)
                 Hud.ShowReactionAt(wp, ReactionText(d), ReactionColor(d));
 
                 // A human's winning quick-draw counts toward the fastest-reaction record.
@@ -424,7 +424,7 @@ namespace HighNoon
             foreach (var kv in bars)
             {
                 var d = kv.Key; var bar = kv.Value;
-                Vector3 wp = d.View.transform.position + Vector3.up * 1.6f; // landscape: popup above each head
+                Vector3 wp = d.View.PopupAnchor; // pinned above each head
                 bool hit = bar.IsHit(bar.LockedX);
                 bool perfect = hit && bar.Error(bar.LockedX) <= bar.GreenHalf * 0.28f;
                 string text = !hit ? "MISS" : perfect ? "PERFECT!" : "HIT";

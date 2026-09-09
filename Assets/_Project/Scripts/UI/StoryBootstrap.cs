@@ -42,13 +42,7 @@ namespace HighNoon
 
         void BuildCanvas()
         {
-            var canvas = gameObject.AddComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            var scaler = gameObject.AddComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1080, 1920);
-            scaler.matchWidthOrHeight = 1f; // match height
-            gameObject.AddComponent<GraphicRaycaster>();
+            UiCanvas.Overlay(gameObject);
         }
 
         void Background(Color c)
@@ -65,14 +59,14 @@ namespace HighNoon
             var ch = Campaign.CurrentChapter;
             Background(ch.Theme * 0.5f);
 
-            Text("Kicker", $"CHAPTER {Campaign.Chapter + 1} / {Campaign.Chapters.Length}", 48, 470, 900, 80,
+            Text("Kicker", $"CHAPTER {Campaign.Chapter + 1} / {Campaign.Chapters.Length}", 36, 380, 900, 56,
                 new Color(0.9f, 0.85f, 0.72f), FontStyle.Normal);
-            Text("Title", ch.Title, 120, 300, 1040, 190, Gold, FontStyle.Bold);
-            Text("Tagline", ch.Tagline, 46, 130, 940, 140, new Color(0.86f, 0.82f, 0.72f), FontStyle.Italic);
+            Text("Title", ch.Title, 88, 250, 1200, 140, Gold, FontStyle.Bold);
+            Text("Tagline", ch.Tagline, 36, 120, 1100, 80, new Color(0.86f, 0.82f, 0.72f), FontStyle.Italic);
 
-            Cowboy(new Vector2(0f, -170f), new Vector2(260f, 340f));
+            Cowboy(new Vector2(-420f, -80f), new Vector2(280f, 360f));
 
-            Button("Begin", "BEGIN", -560f, 560, 150, 66, Gold, DuelFlow.Map);
+            Button("Begin", "BEGIN", new Vector2(360f, -120f), 480, 130, 56, Gold, DuelFlow.Map);
         }
 
         void BuildVictory()
@@ -81,13 +75,13 @@ namespace HighNoon
             _music.PlayOneShot(AudioBank.GetRandom("victory", ProcAudio.Victory), 0.9f * GameSettings.SfxVolume);
             Haptics.Success();
 
-            Text("Title", "VICTORY", 150, 430, 1040, 220, Gold, FontStyle.Bold);
-            Cowboy(new Vector2(0f, 70f), new Vector2(320f, 420f));
-            Text("Flavor", "You cleaned up the West.\nNo one draws faster.", 48, -250, 960, 200,
+            Text("Title", "VICTORY", 110, 360, 1040, 160, Gold, FontStyle.Bold);
+            Cowboy(new Vector2(0f, 40f), new Vector2(260f, 340f));
+            Text("Flavor", "You cleaned up the West.  No one draws faster.", 36, -200, 1200, 80,
                 new Color(0.92f, 0.88f, 0.78f), FontStyle.Normal);
 
-            Button("Again", "PLAY AGAIN", -520f, 620, 140, 60, Btn, Restart);
-            Button("Menu", "MENU", -680f, 420, 120, 52, new Color(0.45f, 0.4f, 0.3f), DuelFlow.Menu);
+            Button("Again", "PLAY AGAIN", new Vector2(-320f, -380f), 520, 120, 48, Btn, Restart);
+            Button("Menu", "MENU", new Vector2(320f, -380f), 400, 120, 44, new Color(0.45f, 0.4f, 0.3f), DuelFlow.Menu);
         }
 
         void BuildDefeat()
@@ -96,13 +90,13 @@ namespace HighNoon
             _music.PlayOneShot(AudioBank.GetRandom("defeat", ProcAudio.Defeat), 0.9f * GameSettings.SfxVolume);
             Haptics.Heavy();
 
-            Text("Title", "DEFEAT", 150, 430, 1040, 220, Red, FontStyle.Bold);
-            Prop(PropArt.Tombstone(), new Vector2(0f, 70f), new Vector2(280f, 360f));
-            Text("Flavor", "The frontier claims another.\nBoot Hill has a fresh plot.", 48, -250, 960, 200,
+            Text("Title", "DEFEAT", 110, 360, 1040, 160, Red, FontStyle.Bold);
+            Prop(PropArt.Tombstone(), new Vector2(0f, 40f), new Vector2(240f, 300f));
+            Text("Flavor", "The frontier claims another.  Boot Hill has a fresh plot.", 36, -200, 1200, 80,
                 new Color(0.82f, 0.8f, 0.78f), FontStyle.Normal);
 
-            Button("Again", "TRY AGAIN", -520f, 620, 140, 60, Btn, Restart);
-            Button("Menu", "MENU", -680f, 420, 120, 52, new Color(0.4f, 0.38f, 0.36f), DuelFlow.Menu);
+            Button("Again", "TRY AGAIN", new Vector2(-320f, -380f), 520, 120, 48, Btn, Restart);
+            Button("Menu", "MENU", new Vector2(320f, -380f), 400, 120, 44, new Color(0.4f, 0.38f, 0.36f), DuelFlow.Menu);
         }
 
         void Restart()
@@ -154,12 +148,12 @@ namespace HighNoon
             img.raycastTarget = false;
         }
 
-        void Button(string name, string label, float y, float w, float h, int fontSize, Color color, System.Action onClick)
+        void Button(string name, string label, Vector2 pos, float w, float h, int fontSize, Color color, System.Action onClick)
         {
             var rt = NewRect(name, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f));
             rt.pivot = new Vector2(0.5f, 0.5f);
             rt.sizeDelta = new Vector2(w, h);
-            rt.anchoredPosition = new Vector2(0f, y);
+            rt.anchoredPosition = pos;
             var img = rt.gameObject.AddComponent<Image>();
             img.color = color;
             var btn = rt.gameObject.AddComponent<Button>();

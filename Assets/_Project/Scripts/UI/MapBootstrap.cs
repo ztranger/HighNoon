@@ -7,9 +7,9 @@ using UnityEngine.InputSystem.UI;
 namespace HighNoon
 {
     /// <summary>
-    /// Visual mission map for the current PvE chapter. Nodes run bottom → top (players
-    /// climb toward the boss). Cleared nodes are green, the current node glows and is
-    /// tappable (→ starts its duel), later nodes are locked. Built in code (overlay UI).
+    /// Visual mission map for the current PvE chapter. Nodes run left → right.
+    /// Cleared nodes are green, the current node glows and is tappable (→ starts its
+    /// duel), later nodes are locked. Built in code (overlay UI).
     /// </summary>
     public class MapBootstrap : MonoBehaviour
     {
@@ -42,13 +42,7 @@ namespace HighNoon
         {
             var chapter = Campaign.CurrentChapter;
 
-            var canvas = gameObject.AddComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            var scaler = gameObject.AddComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1080, 1920);
-            scaler.matchWidthOrHeight = 1f; // match height so the vertical map always fits
-            gameObject.AddComponent<GraphicRaycaster>();
+            UiCanvas.Overlay(gameObject);
 
             // Background (chapter theme, slightly darkened).
             var bg = NewRect("BG", transform, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
@@ -57,25 +51,25 @@ namespace HighNoon
             bgImg.color = bgc;
             bgImg.raycastTarget = false;
 
-            // Header (all in reference-px, center-anchored, so the whole layout scales as one).
-            Label("ChapterKicker", $"CHAPTER {Campaign.Chapter + 1} / {Campaign.Chapters.Length}", 42,
-                new Vector2(0.5f, 0.5f), 900, 70, new Color(0.9f, 0.85f, 0.7f), FontStyle.Normal)
-                .rectTransform.anchoredPosition = new Vector2(0f, 850f);
-            Label("ChapterTitle", chapter.Title, 96,
-                new Vector2(0.5f, 0.5f), 1000, 150, Gold, FontStyle.Bold)
-                .rectTransform.anchoredPosition = new Vector2(0f, 750f);
-            Label("Lives", $"LIVES  {Campaign.Lives}", 46,
-                new Vector2(0.5f, 0.5f), 900, 70, new Color(1f, 0.6f, 0.55f), FontStyle.Bold)
-                .rectTransform.anchoredPosition = new Vector2(0f, 655f);
+            // Header (landscape: top strip).
+            Label("ChapterKicker", $"CHAPTER {Campaign.Chapter + 1} / {Campaign.Chapters.Length}", 32,
+                new Vector2(0.5f, 0.5f), 900, 50, new Color(0.9f, 0.85f, 0.7f), FontStyle.Normal)
+                .rectTransform.anchoredPosition = new Vector2(0f, 460f);
+            Label("ChapterTitle", chapter.Title, 64,
+                new Vector2(0.5f, 0.5f), 1100, 90, Gold, FontStyle.Bold)
+                .rectTransform.anchoredPosition = new Vector2(0f, 390f);
+            Label("Lives", $"LIVES  {Campaign.Lives}", 36,
+                new Vector2(0.5f, 0.5f), 900, 50, new Color(1f, 0.6f, 0.55f), FontStyle.Bold)
+                .rectTransform.anchoredPosition = new Vector2(0f, 320f);
 
-            // Node positions (bottom → top).
+            // Node positions (left → right along the road).
             int n = chapter.Stages.Length;
             var pos = new Vector2[n];
             for (int i = 0; i < n; i++)
             {
                 float t = n == 1 ? 0.5f : i / (float)(n - 1);
-                float y = Mathf.Lerp(-520f, 500f, t);
-                float x = (i % 2 == 0) ? -170f : 170f;
+                float x = Mathf.Lerp(-640f, 640f, t);
+                float y = (i % 2 == 0) ? -20f : 90f;
                 pos[i] = new Vector2(x, y);
             }
 
@@ -104,11 +98,10 @@ namespace HighNoon
                 num.transform.SetParent(node, false);
                 num.rectTransform.anchoredPosition = Vector2.zero;
 
-                // opponent label, kept inboard so it never runs off-screen
-                float lx = pos[i].x < 0 ? pos[i].x + 210f : pos[i].x - 210f;
-                var name = Label($"Node{i}Name", chapter.Stages[i].Title, 40,
-                    new Vector2(0.5f, 0.5f), 380, 80, cleared ? new Color(0.8f, 0.9f, 0.8f) : current ? Gold : new Color(0.7f, 0.68f, 0.65f), FontStyle.Bold);
-                name.rectTransform.anchoredPosition = new Vector2(lx, pos[i].y);
+                // opponent label sits under the node
+                var name = Label($"Node{i}Name", chapter.Stages[i].Title, 32,
+                    new Vector2(0.5f, 0.5f), 360, 50, cleared ? new Color(0.8f, 0.9f, 0.8f) : current ? Gold : new Color(0.7f, 0.68f, 0.65f), FontStyle.Bold);
+                name.rectTransform.anchoredPosition = new Vector2(pos[i].x, pos[i].y - 90f);
 
                 if (current)
                 {
@@ -128,11 +121,11 @@ namespace HighNoon
             }
 
             // Hint + menu.
-            Label("Hint", "Tap the glowing spot to draw", 38,
-                new Vector2(0.5f, 0.5f), 1000, 70, new Color(0.85f, 0.82f, 0.72f), FontStyle.Normal)
-                .rectTransform.anchoredPosition = new Vector2(0f, -700f);
-            var menu = MakeButton("MenuButton", "MENU", new Vector2(0.5f, 0.5f), 360, 110, 44, Locked);
-            ((RectTransform)menu.transform).anchoredPosition = new Vector2(0f, -850f);
+            Label("Hint", "Tap the glowing spot to draw", 32,
+                new Vector2(0.5f, 0.5f), 1000, 50, new Color(0.85f, 0.82f, 0.72f), FontStyle.Normal)
+                .rectTransform.anchoredPosition = new Vector2(0f, -360f);
+            var menu = MakeButton("MenuButton", "MENU", new Vector2(0.5f, 0.5f), 280, 80, 36, Locked);
+            ((RectTransform)menu.transform).anchoredPosition = new Vector2(0f, -450f);
             menu.onClick.AddListener(() => DuelFlow.Menu());
 
             if (_pulseNode != null) StartCoroutine(Pulse());

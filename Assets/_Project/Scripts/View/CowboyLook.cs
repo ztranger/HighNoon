@@ -20,6 +20,11 @@ namespace HighNoon
         public Accessory Chest  = Accessory.None;
         public FacialHair Facial = FacialHair.None;
 
+        /// <summary>Optional id of a real illustration in <see cref="CowboyCatalog"/>. When set (and
+        /// the PNG loads) <see cref="DuelistView"/> renders that sprite instead of procedural pixels;
+        /// the color fields above then only tint dialog/name accents.</summary>
+        public string CharacterId;
+
         /// <summary>Stable key for <see cref="CowboyArt"/> frame cache.</summary>
         public string CacheKey()
         {
@@ -35,6 +40,7 @@ namespace HighNoon
             Shirt = new Color(0.82f, 0.62f, 0.36f),
             Accent = new Color(0.80f, 0.20f, 0.18f),
             Chest = Accessory.Bandana,
+            CharacterId = "dusty_hart",
         };
 
         public static CowboyLook Player2() => new CowboyLook
@@ -42,6 +48,7 @@ namespace HighNoon
             Shirt = new Color(0.45f, 0.62f, 0.85f),
             Accent = new Color(0.95f, 0.82f, 0.32f),
             Chest = Accessory.Bandana,
+            CharacterId = "rio_vela",
         };
 
         public static CowboyLook Enemy() => new CowboyLook
@@ -50,6 +57,7 @@ namespace HighNoon
             HatColor = new Color(0.12f, 0.12f, 0.13f),
             Accent = new Color(0.16f, 0.16f, 0.18f),
             Chest = Accessory.Bandana,
+            CharacterId = "black_calhoun",
         };
 
         /// <summary>
@@ -77,6 +85,8 @@ namespace HighNoon
                 Facial = source.Facial == FacialHair.Beard ? FacialHair.Mustache
                        : source.Facial == FacialHair.Mustache ? FacialHair.None
                        : FacialHair.Mustache,
+                // Different illustration from the source so a 2v2 pair isn't two identical cowboys.
+                CharacterId = source.CharacterId == "doc_graves" ? "black_calhoun" : "doc_graves",
             };
         }
     }

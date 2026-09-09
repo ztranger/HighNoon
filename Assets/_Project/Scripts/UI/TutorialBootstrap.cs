@@ -17,7 +17,7 @@ namespace HighNoon
     public class TutorialBootstrap : MonoBehaviour
     {
         static readonly Rect FullScreen = new Rect(0f, 0f, 1f, 1f);
-        static readonly Rect BottomHalf = new Rect(0f, 0f, 1f, 0.5f);
+        static readonly Rect LeftHalf = new Rect(0f, 0f, 0.5f, 1f);
         static readonly Color Gold = new Color(0.95f, 0.82f, 0.38f);
         static readonly Color Warn = new Color(1f, 0.55f, 0.25f);
 
@@ -27,7 +27,7 @@ namespace HighNoon
         Image _playerImg, _oppImg;
         CowboyFrames _playerFrames, _oppFrames;
         DuelAudio _audio;
-        HumanDuelInput _tapAny, _tapBottom;
+        HumanDuelInput _tapAny, _tapLeft;
 
         static double Now => Time.realtimeSinceStartupAsDouble;
 
@@ -47,7 +47,7 @@ namespace HighNoon
             _audio.Setup();
 
             _tapAny = new HumanDuelInput(FullScreen, Key.Space);
-            _tapBottom = new HumanDuelInput(BottomHalf, Key.S);
+            _tapLeft = new HumanDuelInput(LeftHalf, Key.S);
 
             StartCoroutine(Run());
         }
@@ -66,13 +66,13 @@ namespace HighNoon
         IEnumerator StepIntro()
         {
             Idle();
-            Show("WELCOME, STRANGER", "You hold your end of the phone.\nThis is YOUR half — the bottom.\nTap it to draw your gun.\n\nTap anywhere to continue.");
+            Show("WELCOME, STRANGER", "You hold your end of the phone.\nThis is YOUR half — the left.\nTap it to draw your gun.\n\nTap anywhere to continue.");
             yield return StartCoroutine(WaitTap(_tapAny));
         }
 
         IEnumerator StepReaction()
         {
-            Show("THE QUICK DRAW", "Wait for the word — then tap the bottom FAST.\nThe first clean tap wins.\nBut tap too EARLY and it's a false start — you lose.\n\nTap to begin.");
+            Show("THE QUICK DRAW", "Wait for the word — then tap the LEFT FAST.\nThe first clean tap wins.\nBut tap too EARLY and it's a false start — you lose.\n\nTap to begin.");
             yield return StartCoroutine(WaitTap(_tapAny));
 
             bool done = false;
@@ -82,14 +82,14 @@ namespace HighNoon
                 Show("STEADY…", "Don't tap yet — wait for BANG!");
                 _audio.StartTension();
 
-                _tapBottom.ResetInput(); _tapBottom.Arm();
+                _tapLeft.ResetInput(); _tapLeft.Arm();
                 float tension = Random.Range(1.6f, 3.2f), e = 0f;
                 bool early = false;
                 while (e < tension)
                 {
                     e += Time.deltaTime;
-                    _tapBottom.Tick(Now);
-                    if (_tapBottom.HasFired) { early = true; break; }
+                    _tapLeft.Tick(Now);
+                    if (_tapLeft.HasFired) { early = true; break; }
                     yield return null;
                 }
                 _audio.StopTension();
@@ -105,10 +105,10 @@ namespace HighNoon
 
                 double bang = Now;
                 _audio.Bang(); Flash(); Haptics.Medium();
-                Show("BANG!", "TAP the bottom half — NOW!", Gold);
+                Show("BANG!", "TAP the left half — NOW!", Gold);
 
-                while (!_tapBottom.HasFired) { _tapBottom.Tick(Now); yield return null; }
-                float ms = (float)(_tapBottom.FireTimeRealtime - bang) * 1000f;
+                while (!_tapLeft.HasFired) { _tapLeft.Tick(Now); yield return null; }
+                float ms = (float)(_tapLeft.FireTimeRealtime - bang) * 1000f;
 
                 PlayerShoot(); OpponentDie(); _audio.Gunshot(); Haptics.Light();
                 Show("CLEAN DRAW!", $"{Mathf.Max(0f, ms):0} ms.\nFastest valid tap always wins.\n\nTap to continue.");
@@ -128,12 +128,12 @@ namespace HighNoon
             {
                 var bar = new GameObject("TutorialBar").AddComponent<TimingBar>();
                 float gc = Random.Range(0.30f, 0.70f);
-                bar.Build(transform, _font, false, new Vector2(0f, -150f), 880f, 84f, gc, 0.14f, "TAP IN THE GREEN");
+                bar.Build(transform, _font, false, new Vector2(0f, -280f), 880f, 84f, gc, 0.14f, "TAP IN THE GREEN");
 
                 Idle();
-                Show("AIM…", "Tap the bottom half when the marker is on GREEN.");
+                Show("AIM…", "Tap the left half when the marker is on GREEN.");
                 _audio.StartTension();
-                _tapBottom.ResetInput(); _tapBottom.Arm();
+                _tapLeft.ResetInput(); _tapLeft.Arm();
 
                 float t = 0f; bool tapped = false;
                 while (t < 8f)
@@ -141,8 +141,8 @@ namespace HighNoon
                     t += Time.deltaTime;
                     float x = Mathf.PingPong(t * 0.8f, 1f);
                     bar.SetSweepX(x);
-                    _tapBottom.Tick(Now);
-                    if (_tapBottom.HasFired) { bar.Lock(x); tapped = true; break; }
+                    _tapLeft.Tick(Now);
+                    if (_tapLeft.HasFired) { bar.Lock(x); tapped = true; break; }
                     yield return null;
                 }
                 _audio.StopTension();
@@ -196,10 +196,13 @@ namespace HighNoon
             _playerImg.sprite = _playerFrames.Idle[0];
             _playerImg.color = Color.white;
             _playerImg.rectTransform.localRotation = Quaternion.identity;
+            _playerImg.rectTransform.localScale = Vector3.one;
+            _playerImg.rectTransform.anchoredPosition = new Vector2(-520f, 0f);
             _oppImg.sprite = _oppFrames.Idle[0];
             _oppImg.color = Color.white;
-            _oppImg.rectTransform.localRotation = Quaternion.Euler(0f, 0f, 180f); // faces the player
-            _oppImg.rectTransform.anchoredPosition = new Vector2(0f, 560f);
+            _oppImg.rectTransform.localRotation = Quaternion.identity;
+            _oppImg.rectTransform.localScale = new Vector3(-1f, 1f, 1f); // faces the player
+            _oppImg.rectTransform.anchoredPosition = new Vector2(520f, 0f);
         }
 
         void PlayerShoot() => _playerImg.sprite = _playerFrames.Shoot[_playerFrames.Shoot.Length - 1];
@@ -208,21 +211,15 @@ namespace HighNoon
         {
             _oppImg.sprite = _oppFrames.Death[_oppFrames.Death.Length - 1];
             _oppImg.color = new Color(1f, 1f, 1f, 0.7f);
-            _oppImg.rectTransform.localRotation = Quaternion.Euler(0f, 0f, 250f);
-            _oppImg.rectTransform.anchoredPosition = new Vector2(60f, 500f);
+            _oppImg.rectTransform.localRotation = Quaternion.Euler(0f, 0f, 70f);
+            _oppImg.rectTransform.anchoredPosition = new Vector2(580f, -40f);
         }
 
         // ---- UI build ----
 
         void BuildUI()
         {
-            var canvas = gameObject.AddComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            var scaler = gameObject.AddComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1080, 1920);
-            scaler.matchWidthOrHeight = 1f;
-            gameObject.AddComponent<GraphicRaycaster>();
+            UiCanvas.Overlay(gameObject, 1f);
 
             // Warm background.
             var bg = NewRect("BG", Vector2.zero, Vector2.one);
@@ -231,19 +228,19 @@ namespace HighNoon
             bgImg.color = new Color(0.78f, 0.62f, 0.36f);
             bgImg.raycastTarget = false;
 
-            // A subtle divider between the two halves.
-            var mid = Center("Divider", new Vector2(0f, 0f), new Vector2(1200f, 8f));
+            // Vertical divider between the two halves of the street.
+            var mid = Center("Divider", new Vector2(0f, 0f), new Vector2(8f, 900f));
             var midImg = mid.gameObject.AddComponent<Image>();
             midImg.color = new Color(0.35f, 0.26f, 0.16f, 0.8f);
             midImg.raycastTarget = false;
 
             _oppFrames = CowboyArt.Build(CowboyLook.Enemy());
             _playerFrames = CowboyArt.Build(CowboyLook.Player());
-            _oppImg = MakeCowboy("Opponent", new Vector2(0f, 560f), true, _oppFrames);
-            _playerImg = MakeCowboy("Player", new Vector2(0f, -560f), false, _playerFrames);
+            _oppImg = MakeCowboy("Opponent", new Vector2(520f, 0f), true, _oppFrames);
+            _playerImg = MakeCowboy("Player", new Vector2(-520f, 0f), false, _playerFrames);
 
-            _prompt = MakeText("Prompt", 82, new Vector2(0f, 300f), 1040, 200, Gold, FontStyle.Bold);
-            _hint = MakeText("Hint", 44, new Vector2(0f, 90f), 980, 320, new Color(0.98f, 0.94f, 0.86f), FontStyle.Normal);
+            _prompt = MakeText("Prompt", 64, new Vector2(0f, 360f), 1400, 120, Gold, FontStyle.Bold);
+            _hint = MakeText("Hint", 36, new Vector2(0f, 240f), 1200, 160, new Color(0.98f, 0.94f, 0.86f), FontStyle.Normal);
 
             // Full-screen flash overlay.
             var fl = NewRect("Flash", Vector2.zero, Vector2.one);
@@ -258,14 +255,14 @@ namespace HighNoon
             skip.onClick.AddListener(() => { Sfx.Click(); Haptics.Light(); Finish(); });
         }
 
-        Image MakeCowboy(string name, Vector2 pos, bool faceDown, CowboyFrames frames)
+        Image MakeCowboy(string name, Vector2 pos, bool flipX, CowboyFrames frames)
         {
             var rt = Center(name, pos, new Vector2(240f, 320f));
             var img = rt.gameObject.AddComponent<Image>();
             img.sprite = frames.Idle[0];
             img.preserveAspect = true;
             img.raycastTarget = false;
-            if (faceDown) rt.localRotation = Quaternion.Euler(0f, 0f, 180f);
+            if (flipX) rt.localScale = new Vector3(-1f, 1f, 1f);
             return img;
         }
 
