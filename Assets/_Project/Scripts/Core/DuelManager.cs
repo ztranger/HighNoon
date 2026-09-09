@@ -32,6 +32,7 @@ namespace HighNoon
         {
             StopAllCoroutines();
             Time.timeScale = 1f;
+            foreach (var d in Duelists) d.Lane = d.HomeLane; // undo any tie-break lane change from a prior match (fixes rematch pairing)
             StartCoroutine(Type == DuelType.Timing ? RunTimingMatch() : RunMatch());
         }
 
@@ -143,12 +144,11 @@ namespace HighNoon
                     {
                         if (resolved.Contains(lane)) continue;
                         var g = active.Where(d => d.Lane == lane).ToList();
-                        Duelist winner = null;
-                        double best = double.MaxValue;
-                        foreach (var d in g)
-                            if (d.Input.HasFired && d.Input.FireTimeRealtime >= _bangTime && d.Input.FireTimeRealtime < best)
-                            { best = d.Input.FireTimeRealtime; winner = d; }
-                        if (winner != null) { DecideLane(g, winner); resolved.Add(lane); }
+                        if (TryPickLaneWinner(g, _bangTime, out var winner))
+                        {
+                            DecideLane(g, winner); // winner == null → equal times, lane draw
+                            resolved.Add(lane);
+                        }
                     }
 
                     if (resolved.Count == lanes.Count)
@@ -208,9 +208,41 @@ namespace HighNoon
         }
 
         /// <summary>
+        /// Earliest valid post-BANG fire in the group. Equal best times are a lane draw
+        /// (<paramref name="winner"/> is null) — not a list-order win.
+        /// Returns false if nobody has a valid fire yet.
+        /// </summary>
+        static bool TryPickLaneWinner(List<Duelist> group, double bangTime, out Duelist winner)
+        {
+            winner = null;
+            double best = double.MaxValue;
+            int bestCount = 0;
+            foreach (var d in group)
+            {
+                if (!d.Input.HasFired) continue;
+                double t = d.Input.FireTimeRealtime;
+                if (t < bangTime) continue;
+                if (t < best)
+                {
+                    best = t;
+                    winner = d;
+                    bestCount = 1;
+                }
+                else if (t == best)
+                {
+                    bestCount++;
+                }
+            }
+            if (bestCount == 0) return false;
+            if (bestCount > 1) winner = null;
+            return true;
+        }
+
+        /// <summary>
         /// Settles one lane: <paramref name="winner"/> survives; everyone else drops at once
         /// (visual death, blocked from firing). Reaction times + popups are shown later in the
         /// finalize step, so the slower player's own tap time can still be captured first.
+        /// A null winner is a draw — nobody in the lane survives.
         /// </summary>
         void DecideLane(List<Duelist> group, Duelist winner)
         {
@@ -437,7 +469,9 @@ namespace HighNoon
             DeathFx();
         }
 
-        /// <summary>PvP/Coop: each lane goes to whoever stopped closest to the green centre.</summary>
+        /// <summary>PvP/Coop: each lane is its own 1v1 — whoever stopped closest to the green centre
+        /// wins their lane; the loser drops. In 2v2 that's two independent duels; if the survivors are
+        /// one per side, a tie-break round settles it (in `RunTimingMatch`). (Fair and intended.)</summary>
         void ResolveTimingContest(List<Duelist> active)
         {
             var lanes = active.Select(d => d.Lane).Distinct().ToList();

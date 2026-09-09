@@ -8,6 +8,8 @@ namespace HighNoon
     /// A human duelist. Fires on the first touch (or mouse click) inside its
     /// normalized screen zone, with a keyboard fallback for in-editor testing.
     /// Multi-touch aware so two players on one phone are timed independently.
+    /// The fire timestamp is the Input System event time (same clock as
+    /// <see cref="Time.realtimeSinceStartupAsDouble"/>), not the Tick poll.
     /// </summary>
     public class HumanDuelInput : IDuelInput
     {
@@ -39,7 +41,8 @@ namespace HighNoon
             {
                 if (t.phase == UnityEngine.InputSystem.TouchPhase.Began && InZone(t.screenPosition))
                 {
-                    Fire(nowRealtime);
+                    double eventTime = t.startTime > 0d ? t.startTime : t.time;
+                    Fire(Stamp(eventTime, nowRealtime));
                     return;
                 }
             }
@@ -48,7 +51,7 @@ namespace HighNoon
             var mouse = Mouse.current;
             if (mouse != null && mouse.leftButton.wasPressedThisFrame && InZone(mouse.position.ReadValue()))
             {
-                Fire(nowRealtime);
+                Fire(Stamp(mouse.leftButton.lastUpdateTime, nowRealtime));
                 return;
             }
 
@@ -56,15 +59,27 @@ namespace HighNoon
             var kb = Keyboard.current;
             if (kb != null && _fallbackKey != Key.None && kb[_fallbackKey].wasPressedThisFrame)
             {
-                Fire(nowRealtime);
+                Fire(Stamp(kb[_fallbackKey].lastUpdateTime, nowRealtime));
                 return;
             }
         }
 
-        void Fire(double now)
+        void Fire(double when)
         {
             _fired = true;
-            _fireTime = now;
+            _fireTime = when;
+        }
+
+        /// <summary>
+        /// Input System event times share the realtimeSinceStartup clock with bots.
+        /// Fall back to the Tick poll if the event time is missing or not this tap.
+        /// </summary>
+        static double Stamp(double eventTime, double nowRealtime)
+        {
+            if (eventTime <= 0d) return nowRealtime;
+            if (eventTime > nowRealtime) return nowRealtime;
+            if (nowRealtime - eventTime > 0.25d) return nowRealtime;
+            return eventTime;
         }
 
         bool InZone(Vector2 screenPos)

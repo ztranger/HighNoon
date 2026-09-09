@@ -4,7 +4,8 @@ namespace HighNoon
     public class Duelist
     {
         public DuelSide Side;
-        public int Lane;              // 0..n within a side (used later for 2v2)
+        public int Lane;              // 0..n within a side (used for 2v2); a tie-break sets it to 0
+        public int HomeLane;          // the originally-assigned lane; Lane is reset to this each match
         public DuelistKind Kind;
         public IDuelInput Input;
         public DuelistView View;

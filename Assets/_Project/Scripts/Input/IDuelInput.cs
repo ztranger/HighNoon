@@ -12,7 +12,11 @@ namespace HighNoon
         /// <summary>Notified of the exact BANG moment (bots schedule their reaction from here).</summary>
         void OnBang(double bangTimeRealtime);
 
-        /// <summary>Polled every frame; detect a fire event and timestamp it.</summary>
+        /// <summary>
+        /// Polled every frame. Humans stamp the Input System event time; bots stamp
+        /// their scheduled instant. <paramref name="nowRealtime"/> is the poll clock
+        /// (and the human fallback if the event time is missing).
+        /// </summary>
         void Tick(double nowRealtime);
 
         bool HasFired { get; }

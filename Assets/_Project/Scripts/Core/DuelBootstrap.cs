@@ -196,6 +196,7 @@ namespace HighNoon
             {
                 Side = side,
                 Lane = lane,
+                HomeLane = lane,
                 Kind = isBot ? DuelistKind.Bot : DuelistKind.Human,
                 Input = input,
                 View = view,
