@@ -8,6 +8,7 @@ namespace HighNoon
         public static void Apply()
         {
             Application.runInBackground = true;   // keep ticking when unfocused (editor/MCP testing)
+            Screen.orientation = ScreenOrientation.Portrait; // menus/map/story are portrait; DuelBootstrap flips to landscape
 
             // One frame is gameplay. QualitySettings "Very Low" (current) has vSyncCount=0;
             // cap at 60 and keep vSync off so they don't fight. 120 later if we detect high-refresh.

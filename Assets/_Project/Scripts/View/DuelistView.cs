@@ -5,8 +5,8 @@ namespace HighNoon
 {
     /// <summary>
     /// Visual representation of a duelist using frame-by-frame pixel animation.
-    /// The top duelist is rotated 180° so each player, sitting at opposite ends of
-    /// one phone, sees their own cowboy upright.
+    /// Landscape showdown: the two gunslingers stand at opposite ends of the street and walk in
+    /// from their own edge; the right-hand one is mirrored (flipX) so the pair faces the centre.
     /// </summary>
     public class DuelistView : MonoBehaviour
     {
@@ -15,25 +15,27 @@ namespace HighNoon
         CowboyFrames _frames;
         Vector3 _homePos;
         Vector3 _offscreenPos;
-        bool _faceDown;
+        bool _rightSide;
 
         /// <summary>Idle frame for UI portraits — same cached sprites as the cowboy on the field.</summary>
         public Sprite IdlePortrait => _frames != null && _frames.Idle != null && _frames.Idle.Length > 0
             ? _frames.Idle[0] : null;
 
-        public void Setup(SpriteRenderer sr, CowboyLook look, bool faceDown)
+        /// <summary><paramref name="rightSide"/> = this duelist stands on the right of the street
+        /// (walks in from the right, sprite mirrored to face left).</summary>
+        public void Setup(SpriteRenderer sr, CowboyLook look, bool rightSide)
         {
             _sr = sr;
-            _faceDown = faceDown;
+            _rightSide = rightSide;
             _frames = CowboyArt.Build(look);
 
             _anim = gameObject.AddComponent<FrameAnimator>();
             _anim.Init(sr);
             _sr.sprite = _frames.Idle[0];
+            _sr.flipX = rightSide; // right duelist faces left toward the centre
 
             _homePos = transform.position;
-            _offscreenPos = _homePos + (faceDown ? Vector3.up : Vector3.down) * 7f;
-            if (faceDown) transform.rotation = Quaternion.Euler(0f, 0f, 180f);
+            _offscreenPos = _homePos + (rightSide ? Vector3.right : Vector3.left) * 9f;
         }
 
         public void SetIdleOffscreen()

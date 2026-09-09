@@ -51,7 +51,7 @@ namespace HighNoon
             var mouse = Mouse.current;
             if (mouse != null && mouse.leftButton.wasPressedThisFrame && InZone(mouse.position.ReadValue()))
             {
-                Fire(Stamp(mouse.leftButton.lastUpdateTime, nowRealtime));
+                Fire(Stamp(mouse.lastUpdateTime, nowRealtime)); // device event time (editor mouse fallback)
                 return;
             }
 
@@ -59,7 +59,7 @@ namespace HighNoon
             var kb = Keyboard.current;
             if (kb != null && _fallbackKey != Key.None && kb[_fallbackKey].wasPressedThisFrame)
             {
-                Fire(Stamp(kb[_fallbackKey].lastUpdateTime, nowRealtime));
+                Fire(Stamp(kb.lastUpdateTime, nowRealtime)); // device event time (editor keyboard fallback)
                 return;
             }
         }

@@ -31,12 +31,20 @@ namespace HighNoon
         CameraShake _shake;
         ArenaDef _arena;
 
-        static readonly Rect BottomHalf = new Rect(0f, 0f, 1f, 0.5f);
-        static readonly Rect TopHalf = new Rect(0f, 0.5f, 1f, 0.5f);
-        static readonly Rect BottomLeft = new Rect(0f, 0f, 0.5f, 0.5f);
-        static readonly Rect BottomRight = new Rect(0.5f, 0f, 0.5f, 0.5f);
-        static readonly Rect TopLeft = new Rect(0f, 0.5f, 0.5f, 0.5f);
-        static readonly Rect TopRight = new Rect(0.5f, 0.5f, 0.5f, 0.5f);
+        // Landscape showdown tap zones: each player taps their side of the street.
+        static readonly Rect LeftHalf  = new Rect(0f, 0f, 0.5f, 1f);
+        static readonly Rect RightHalf = new Rect(0.5f, 0f, 0.5f, 1f);
+        // Coop: the two humans share the LEFT side → split it into upper / lower.
+        static readonly Rect LeftUpper = new Rect(0f, 0.5f, 0.5f, 0.5f);
+        static readonly Rect LeftLower = new Rect(0f, 0f, 0.5f, 0.5f);
+
+        // Field positions (world units) — cowboys stand at opposite ends of the street.
+        static readonly Vector2 SoloLeft  = new Vector2(-5.0f, 0f);
+        static readonly Vector2 SoloRight = new Vector2( 5.0f, 0f);
+        static readonly Vector2 PairLeftA  = new Vector2(-5.6f,  1.7f);
+        static readonly Vector2 PairLeftB  = new Vector2(-4.7f, -1.8f);
+        static readonly Vector2 PairRightA = new Vector2( 5.6f,  1.7f);
+        static readonly Vector2 PairRightB = new Vector2( 4.7f, -1.8f);
 
         void Start()
         {
@@ -122,23 +130,23 @@ namespace HighNoon
             string opponent = Campaign.CurrentStage.Title;
             var oppLook = Campaign.CurrentStage.Look ?? CowboyLook.Enemy();
 
-            // Two players share the bottom; two bots (the stage opponents) hold the top.
+            // Two players share the LEFT; two bots (the stage opponents) hold the RIGHT.
             if (MatchSettings.Players == PvPPlayers.TwoPlayers)
             {
                 return new List<Duelist>
                 {
-                    MakeDuelist(DuelSide.Bottom, 0, -2f, false, CowboyLook.Player(),  "P1",     BottomLeft,  Key.A),
-                    MakeDuelist(DuelSide.Bottom, 1,  2f, false, CowboyLook.Player2(), "P2",     BottomRight, Key.D),
-                    MakeDuelist(DuelSide.Top,    0, -2f, true,  oppLook,              opponent, TopLeft,     Key.None),
-                    MakeDuelist(DuelSide.Top,    1,  2f, true,  oppLook,              opponent, TopRight,    Key.None),
+                    MakeDuelist(DuelSide.Bottom, 0, PairLeftA,  false, CowboyLook.Player(),  "P1",     LeftUpper, Key.A),
+                    MakeDuelist(DuelSide.Bottom, 1, PairLeftB,  false, CowboyLook.Player2(), "P2",     LeftLower, Key.D),
+                    MakeDuelist(DuelSide.Top,    0, PairRightA, true,  oppLook,              opponent, RightHalf, Key.None),
+                    MakeDuelist(DuelSide.Top,    1, PairRightB, true,  oppLook,              opponent, RightHalf, Key.None),
                 };
             }
 
-            // Solo: you (bottom) vs one bot opponent (top).
+            // Solo: you (left) vs one bot opponent (right).
             return new List<Duelist>
             {
-                MakeDuelist(DuelSide.Bottom, 0, 0f, false, CowboyLook.Player(), "YOU",    BottomHalf, Key.S),
-                MakeDuelist(DuelSide.Top,    0, 0f, true,  oppLook,             opponent, TopHalf,    Key.None),
+                MakeDuelist(DuelSide.Bottom, 0, SoloLeft,  false, CowboyLook.Player(), "YOU",    LeftHalf,  Key.S),
+                MakeDuelist(DuelSide.Top,    0, SoloRight, true,  oppLook,             opponent, RightHalf, Key.None),
             };
         }
 
@@ -158,20 +166,20 @@ namespace HighNoon
 
             return new List<Duelist>
             {
-                MakeDuelist(DuelSide.Bottom, 0, 0f, botBottom, botBottom ? CowboyLook.Enemy() : CowboyLook.Player(),  botBottom ? "BOT" : "PLAYER 1", BottomHalf, Key.S),
-                MakeDuelist(DuelSide.Top,    0, 0f, botTop,    botTop    ? CowboyLook.Enemy() : CowboyLook.Player2(), botTop    ? "BOT" : "PLAYER 2", TopHalf,    Key.W),
+                MakeDuelist(DuelSide.Bottom, 0, SoloLeft,  botBottom, botBottom ? CowboyLook.Enemy() : CowboyLook.Player(),  botBottom ? "BOT" : "PLAYER 1", LeftHalf,  Key.S),
+                MakeDuelist(DuelSide.Top,    0, SoloRight, botTop,    botTop    ? CowboyLook.Enemy() : CowboyLook.Player2(), botTop    ? "BOT" : "PLAYER 2", RightHalf, Key.W),
             };
         }
 
         List<Duelist> BuildCoop()
         {
-            // Two players share the bottom (left/right); two bots hold the top.
+            // Two players share the LEFT (upper/lower); two bots hold the RIGHT.
             return new List<Duelist>
             {
-                MakeDuelist(DuelSide.Bottom, 0, -2f, false, CowboyLook.Player(),  "P1",  BottomLeft,  Key.A),
-                MakeDuelist(DuelSide.Bottom, 1,  2f, false, CowboyLook.Player2(), "P2",  BottomRight, Key.D),
-                MakeDuelist(DuelSide.Top,    0, -2f, true,  CowboyLook.Enemy(),   "BOT", TopLeft,     Key.None),
-                MakeDuelist(DuelSide.Top,    1,  2f, true,  CowboyLook.Enemy(),   "BOT", TopRight,    Key.None),
+                MakeDuelist(DuelSide.Bottom, 0, PairLeftA,  false, CowboyLook.Player(),  "P1",  LeftUpper, Key.A),
+                MakeDuelist(DuelSide.Bottom, 1, PairLeftB,  false, CowboyLook.Player2(), "P2",  LeftLower, Key.D),
+                MakeDuelist(DuelSide.Top,    0, PairRightA, true,  CowboyLook.Enemy(),   "BOT", RightHalf, Key.None),
+                MakeDuelist(DuelSide.Top,    1, PairRightB, true,  CowboyLook.Enemy(),   "BOT", RightHalf, Key.None),
             };
         }
 
@@ -182,18 +190,17 @@ namespace HighNoon
             return null;
         }
 
-        Duelist MakeDuelist(DuelSide side, int lane, float x, bool isBot, CowboyLook look, string label, Rect zone, Key key)
+        Duelist MakeDuelist(DuelSide side, int lane, Vector2 pos, bool isBot, CowboyLook look, string label, Rect zone, Key key)
         {
             var go = new GameObject($"{side}_{lane}_Cowboy");
-            float y = side == DuelSide.Bottom ? -2.6f : 2.6f;
-            go.transform.position = new Vector3(x, y, 0f);
+            go.transform.position = new Vector3(pos.x, pos.y, 0f);
             go.transform.localScale = new Vector3(1.8f, 1.8f, 1f);
 
             var sr = go.AddComponent<SpriteRenderer>();
             sr.sortingOrder = 10;
 
             var view = go.AddComponent<DuelistView>();
-            view.Setup(sr, look, faceDown: side == DuelSide.Top);
+            view.Setup(sr, look, rightSide: side == DuelSide.Top);
 
             IDuelInput input = isBot
                 ? (IDuelInput)new BotDuelInput(botConfig)
@@ -220,8 +227,9 @@ namespace HighNoon
                 var camGo = new GameObject("Main Camera") { tag = "MainCamera" };
                 cam = camGo.AddComponent<Camera>();
             }
+            Screen.orientation = ScreenOrientation.LandscapeLeft; // the duel plays in landscape (menus force portrait back)
             cam.orthographic = true;
-            cam.orthographicSize = 6f;
+            cam.orthographicSize = 4.4f; // landscape framing — gunslingers stand at x≈±5 across the street
             cam.transform.position = new Vector3(0f, 0f, -10f);
             cam.clearFlags = CameraClearFlags.SolidColor;
             cam.backgroundColor = _arena != null ? _arena.CameraFill : new Color(0.85f, 0.72f, 0.45f);
