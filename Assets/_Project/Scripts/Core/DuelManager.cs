@@ -90,34 +90,41 @@ namespace HighNoon
             if (Random.value < 0.75f) Tumbleweed.Spawn();
 
             _bangTime = 0;
-            var lanes = active.Select(d => d.Lane).Distinct().ToList();
-            var resolved = new HashSet<int>();
+            var byLane = BucketByLane(active, out int liveLanes);
+            int laneCount = byLane.Length;
+            var resolved = new bool[laneCount];
+            int resolvedCount = 0;
 
             // Tension: any tap now is a FALSE START — that lane is settled AT ONCE (jumper loses),
             // no waiting for the hidden timer to finish.
             float tension = Config.RollTension();
             float e = 0f;
-            while (e < tension && resolved.Count < lanes.Count)
+            while (e < tension && resolvedCount < liveLanes)
             {
                 e += Time.deltaTime;
                 TickInputs(active, Time.realtimeSinceStartupAsDouble);
-                foreach (var lane in lanes)
+                for (int i = 0; i < laneCount; i++)
                 {
-                    if (resolved.Contains(lane)) continue;
-                    var g = active.Where(d => d.Lane == lane).ToList();
-                    if (g.Any(d => d.Input.HasFired))
+                    if (resolved[i] || byLane[i].Count == 0) continue;
+                    var g = byLane[i];
+                    bool anyFired = false;
+                    Duelist held = null;
+                    foreach (var d in g)
                     {
-                        foreach (var d in g) d.FalseStarted = d.Input.HasFired; // the jumper(s)
-                        DecideLane(g, g.FirstOrDefault(d => !d.Input.HasFired)); // the one who held survives
-                        resolved.Add(lane);
+                        if (d.Input.HasFired) { d.FalseStarted = true; anyFired = true; }
+                        else if (held == null) held = d;
                     }
+                    if (!anyFired) continue;
+                    DecideLane(g, held); // the one who held survives; both jumped → draw
+                    resolved[i] = true;
+                    resolvedCount++;
                 }
                 yield return null;
             }
             Audio.StopTension();
 
             // BANG — only if a lane is still live.
-            if (resolved.Count < lanes.Count)
+            if (resolvedCount < liveLanes)
             {
                 Phase = DuelPhase.Bang;
                 _bangTime = Time.realtimeSinceStartupAsDouble;
@@ -138,32 +145,31 @@ namespace HighNoon
                     w += Time.deltaTime;
                     double now = Time.realtimeSinceStartupAsDouble;
                     TickInputs(active, now);
-                    FireFxForNew(active); // the instant you tap, your gun fires
 
-                    foreach (var lane in lanes)
+                    // Decide before FX so a same-frame loser never PlayShoot + gunshot.
+                    for (int i = 0; i < laneCount; i++)
                     {
-                        if (resolved.Contains(lane)) continue;
-                        var g = active.Where(d => d.Lane == lane).ToList();
-                        if (TryPickLaneWinner(g, _bangTime, out var winner))
-                        {
-                            DecideLane(g, winner); // winner == null → equal times, lane draw
-                            resolved.Add(lane);
-                        }
+                        if (resolved[i] || byLane[i].Count == 0) continue;
+                        if (!TryPickLaneWinner(byLane[i], _bangTime, out var winner)) continue;
+                        DecideLane(byLane[i], winner); // winner == null → equal times, lane draw
+                        resolved[i] = true;
+                        resolvedCount++;
                     }
+                    FireFxForNew(active); // winner (and anyone still live who just tapped) flashes now
 
-                    if (resolved.Count == lanes.Count)
+                    if (resolvedCount == liveLanes)
                     {
                         if (grace < 0f) grace = graceAfterDecided;
                         grace -= Time.deltaTime;
-                        if (grace <= 0f || active.All(d => d.Input.HasFired)) break; // loser's time captured (or they gave up)
+                        if (grace <= 0f || AllHaveFired(active)) break; // loser's time captured (or they gave up)
                     }
                     yield return null;
                 }
 
                 // Timed out: any undecided lane — nobody drew (no survivor).
-                foreach (var lane in lanes)
-                    if (!resolved.Contains(lane))
-                        DecideLane(active.Where(d => d.Lane == lane).ToList(), null);
+                for (int i = 0; i < laneCount; i++)
+                    if (!resolved[i] && byLane[i].Count > 0)
+                        DecideLane(byLane[i], null);
             }
 
             // Finalize: compute each reaction time and show every popup — the winner's AND the
@@ -193,7 +199,10 @@ namespace HighNoon
             foreach (var d in active) d.Input.Tick(now);
         }
 
-        /// <summary>Immediate shoot flash + gunshot the moment a duelist fires (once each).</summary>
+        /// <summary>
+        /// Shoot flash + gunshot for anyone who just fired and is still allowed to
+        /// (losers already have ShotFx from <see cref="DecideLane"/>).
+        /// </summary>
         void FireFxForNew(List<Duelist> active)
         {
             foreach (var d in active)
@@ -205,6 +214,32 @@ namespace HighNoon
                     Haptics.Light();
                     Shake?.Shake(0.12f, 0.10f);
                 }
+        }
+
+        /// <summary>Group active duelists by lane once per round — no LINQ in Tension/Bang.</summary>
+        static List<Duelist>[] BucketByLane(List<Duelist> active, out int liveLanes)
+        {
+            int laneCount = 1;
+            foreach (var d in active)
+                if (d.Lane + 1 > laneCount) laneCount = d.Lane + 1;
+
+            var byLane = new List<Duelist>[laneCount];
+            for (int i = 0; i < laneCount; i++)
+                byLane[i] = new List<Duelist>(2);
+            foreach (var d in active)
+                byLane[d.Lane].Add(d);
+
+            liveLanes = 0;
+            for (int i = 0; i < laneCount; i++)
+                if (byLane[i].Count > 0) liveLanes++;
+            return byLane;
+        }
+
+        static bool AllHaveFired(List<Duelist> active)
+        {
+            foreach (var d in active)
+                if (!d.Input.HasFired) return false;
+            return true;
         }
 
         /// <summary>

@@ -177,11 +177,7 @@ A duel is decided in ~200–400 ms. Work in Tension/Bang must be allocation-free
 
 ### 5.1 LINQ every frame in the hot loop
 
-`DuelManager` Tension and Bang loops do `active.Where(d => d.Lane == lane).ToList()`, `Any`, `All`, `Distinct` **per frame**. 2–4 duelists, but this is GC during the competitive window.
-
-**Fix:** pre-bucket duelists by lane into arrays/lists once per round. No LINQ inside `while (w < maxWindow)`.
-
-LINQ at round *end* (`survivors.Where`, Timing setup) is fine.
+**Done 2026-09-09.** `RunRound` buckets with `BucketByLane` once, then Tension/Bang iterate `byLane[i]` with no LINQ. LINQ at round *end* (`survivors.Where`, Timing setup) is still fine.
 
 **Files:** `Core/DuelManager.cs`.
 
@@ -203,7 +199,7 @@ LINQ at round *end* (`survivors.Where`, Timing setup) is fine.
 
 Result: uncapped / jittery FPS on some Android devices, or 30 fps on others. For this game **one frame is gameplay**.
 
-**Fix:** in `AppInit.Apply()`, set `Application.targetFrameRate = 60` (120 later if you detect a high-refresh display). Pick a 2D-sane quality level (Very Low is OK for fillrate; vSync 0 + target 60 is the usual mobile pair). Do not turn vSync on and also set a target blindly — pick one policy and document it here.
+**Policy (2026-09-09):** `AppInit.Apply()` sets `QualitySettings.vSyncCount = 0` and `Application.targetFrameRate = 60`. Quality level stays **Very Low** (fillrate-cheap 2D). Do not enable vSync on top of the cap. 120 later if we detect a high-refresh display.
 
 **Files:** `Core/AppInit.cs`, optionally QualitySettings.
 
@@ -226,9 +222,9 @@ Check boxes as you complete work. Prefer one item (or a tight pair) per change.
 
 - [x] **Human fire timestamp from Input System touch/mouse event time**, not Tick's `now`. Same clock as bots. (`Input/HumanDuelInput.cs` stamps `Touch.startTime` / `ButtonControl.lastUpdateTime`; Tick `now` is fallback only. `IDuelInput` comment.)
 - [x] **Same-frame equal times → lane draw**, not list-order win. (`Core/DuelManager.cs` `TryPickLaneWinner` — equal best times → `DecideLane(..., null)`.)
-- [ ] **Decide lane before loser shoot FX** (winner still flashes instantly). (`DuelManager` bang loop)
-- [ ] **Lock 60 FPS** in `AppInit.Apply()`; document quality/vSync policy.
-- [ ] **Remove LINQ from Tension/Bang loops**; pre-bucket by lane.
+- [x] **Decide lane before loser shoot FX** (winner still flashes instantly). (`DuelManager` bang loop: Tick → `TryPickLaneWinner`/`DecideLane` → `FireFxForNew`. Losers get `ShotFx` in `DecideLane` so they never `PlayShoot`.)
+- [x] **Lock 60 FPS** in `AppInit.Apply()`; document quality/vSync policy. (`AppInit`: `vSyncCount = 0`, `targetFrameRate = 60`. Quality level stays Very Low.)
+- [x] **Remove LINQ from Tension/Bang loops**; pre-bucket by lane. (`DuelManager.BucketByLane` once per round; `bool[]` resolved; `AllHaveFired`.)
 
 ### P1 — memory & hitch
 
@@ -265,8 +261,8 @@ Then follow [META_AND_PROGRESSION.md](META_AND_PROGRESSION.md) (economy → repu
 Keep MRs small. A reasonable sequence:
 
 1. **`fix: reaction timestamps + same-frame draw`** — HumanDuelInput + DecideLane compare. Highest skill-feel impact. **Done 2026-09-09.**
-2. **`fix: decide-before-fx + no LINQ in bang loop`** — same file, separate commit if the diff is large.
-3. **`fix: lock 60 fps in AppInit`** — one-liner + comment.
+2. **`fix: decide-before-fx + no LINQ in bang loop`** — same file, separate commit if the diff is large. **Done 2026-09-09.**
+3. **`fix: lock 60 fps in AppInit`** — one-liner + comment. **Done 2026-09-09.**
 4. **`fix: cache/destroy procedural sprites`** — art helpers; behavior unchanged.
 5. **`fix: campaign LoadSavedRun zero-life / inactive hydrate`**
 6. **`refactor: shared intro/stance`** — only after P0 is green.

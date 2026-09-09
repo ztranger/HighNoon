@@ -8,6 +8,12 @@ namespace HighNoon
         public static void Apply()
         {
             Application.runInBackground = true;   // keep ticking when unfocused (editor/MCP testing)
+
+            // One frame is gameplay. QualitySettings "Very Low" (current) has vSyncCount=0;
+            // cap at 60 and keep vSync off so they don't fight. 120 later if we detect high-refresh.
+            QualitySettings.vSyncCount = 0;
+            Application.targetFrameRate = 60;
+
             MusicPlayer.Ensure();                 // persistent background music (starts once, survives scenes)
         }
 
