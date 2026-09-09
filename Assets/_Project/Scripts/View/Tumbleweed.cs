@@ -30,7 +30,8 @@ namespace HighNoon
             sr.sortingOrder = 20;
 
             bool leftToRight = Random.value < 0.5f;
-            float y = Random.Range(-halfH * 0.6f, halfH * 0.6f);
+            // Roll along the near street (below the horizon), never through the sky.
+            float y = Random.Range(BackgroundBuilder.Horizon - 2.3f, BackgroundBuilder.Horizon - 0.5f);
             float startX = leftToRight ? -halfW - margin : halfW + margin;
 
             go.transform.position = new Vector3(startX, y, 0f);

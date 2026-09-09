@@ -14,6 +14,14 @@ namespace HighNoon
         public Color Speck;
         public Color Divider;
         public Color CameraFill;
+
+        // Side-view sky (landscape showdown). Optional — BackgroundBuilder derives a
+        // sensible sky from the ground palette when these are left null, so new arenas
+        // still build without them.
+        public Color? SkyTop;      // colour at the top of the sky gradient
+        public Color? SkyHorizon;  // colour where the sky meets the land
+        public Color? Sun;         // low sun / moon disc behind the standoff
+        public Color? Hill;        // distant silhouette (hills / buttes / rooftops)
     }
 
     /// <summary>
@@ -32,6 +40,8 @@ namespace HighNoon
                 Speck = new Color(0.60f, 0.50f, 0.30f),
                 Divider = new Color(0f, 0f, 0f, 0.12f),
                 CameraFill = new Color(0.82f, 0.70f, 0.42f),
+                SkyTop = new Color(0.42f, 0.66f, 0.86f), SkyHorizon = new Color(0.94f, 0.86f, 0.66f),
+                Sun = new Color(1f, 0.92f, 0.66f), Hill = new Color(0.70f, 0.59f, 0.37f),
             },
             new ArenaDef
             {
@@ -41,6 +51,8 @@ namespace HighNoon
                 Speck = new Color(0.42f, 0.33f, 0.22f),
                 Divider = new Color(0.35f, 0.26f, 0.16f, 0.55f),
                 CameraFill = new Color(0.64f, 0.52f, 0.38f),
+                SkyTop = new Color(0.52f, 0.64f, 0.76f), SkyHorizon = new Color(0.92f, 0.83f, 0.66f),
+                Sun = new Color(0.99f, 0.90f, 0.66f), Hill = new Color(0.44f, 0.36f, 0.27f),
             },
             new ArenaDef
             {
@@ -50,6 +62,8 @@ namespace HighNoon
                 Speck = new Color(0.52f, 0.30f, 0.22f),
                 Divider = new Color(0.30f, 0.12f, 0.08f, 0.28f),
                 CameraFill = new Color(0.80f, 0.52f, 0.36f),
+                SkyTop = new Color(0.78f, 0.44f, 0.28f), SkyHorizon = new Color(0.96f, 0.78f, 0.52f),
+                Sun = new Color(1f, 0.87f, 0.60f), Hill = new Color(0.49f, 0.24f, 0.16f),
             },
             new ArenaDef
             {
@@ -59,6 +73,8 @@ namespace HighNoon
                 Speck = new Color(0.27f, 0.29f, 0.27f),
                 Divider = new Color(0f, 0f, 0f, 0.22f),
                 CameraFill = new Color(0.44f, 0.46f, 0.42f),
+                SkyTop = new Color(0.47f, 0.53f, 0.57f), SkyHorizon = new Color(0.80f, 0.79f, 0.71f),
+                Sun = new Color(0.88f, 0.87f, 0.76f), Hill = new Color(0.30f, 0.32f, 0.30f),
             },
             new ArenaDef
             {
@@ -68,6 +84,8 @@ namespace HighNoon
                 Speck = new Color(0.34f, 0.44f, 0.24f),
                 Divider = new Color(0.20f, 0.28f, 0.14f, 0.22f),
                 CameraFill = new Color(0.52f, 0.62f, 0.34f),
+                SkyTop = new Color(0.40f, 0.68f, 0.85f), SkyHorizon = new Color(0.87f, 0.90f, 0.72f),
+                Sun = new Color(0.98f, 0.96f, 0.72f), Hill = new Color(0.30f, 0.42f, 0.22f),
             },
             new ArenaDef
             {
@@ -77,6 +95,8 @@ namespace HighNoon
                 Speck = new Color(0.66f, 0.64f, 0.56f),
                 Divider = new Color(0f, 0f, 0f, 0.08f),
                 CameraFill = new Color(0.86f, 0.84f, 0.74f),
+                SkyTop = new Color(0.62f, 0.78f, 0.86f), SkyHorizon = new Color(0.94f, 0.92f, 0.84f),
+                Sun = new Color(1f, 0.99f, 0.90f), Hill = new Color(0.72f, 0.70f, 0.62f),
             },
             new ArenaDef
             {
@@ -86,6 +106,8 @@ namespace HighNoon
                 Speck = new Color(0.62f, 0.36f, 0.34f),
                 Divider = new Color(0f, 0f, 0f, 0.12f),
                 CameraFill = new Color(0.90f, 0.66f, 0.48f),
+                SkyTop = new Color(0.55f, 0.44f, 0.62f), SkyHorizon = new Color(0.97f, 0.76f, 0.56f),
+                Sun = new Color(1f, 0.86f, 0.62f), Hill = new Color(0.60f, 0.34f, 0.34f),
             },
             new ArenaDef
             {
@@ -95,6 +117,8 @@ namespace HighNoon
                 Speck = new Color(0.35f, 0.33f, 0.30f),
                 Divider = new Color(0.26f, 0.24f, 0.22f, 0.55f),
                 CameraFill = new Color(0.56f, 0.53f, 0.50f),
+                SkyTop = new Color(0.55f, 0.58f, 0.62f), SkyHorizon = new Color(0.86f, 0.81f, 0.71f),
+                Sun = new Color(0.91f, 0.86f, 0.72f), Hill = new Color(0.34f, 0.32f, 0.30f),
             },
             new ArenaDef
             {
@@ -104,6 +128,8 @@ namespace HighNoon
                 Speck = new Color(0.13f, 0.14f, 0.24f),
                 Divider = new Color(0f, 0f, 0f, 0.22f),
                 CameraFill = new Color(0.22f, 0.24f, 0.38f),
+                SkyTop = new Color(0.07f, 0.08f, 0.18f), SkyHorizon = new Color(0.26f, 0.28f, 0.46f),
+                Sun = new Color(0.86f, 0.89f, 0.98f), Hill = new Color(0.10f, 0.11f, 0.20f),
             },
             new ArenaDef
             {
@@ -113,6 +139,8 @@ namespace HighNoon
                 Speck = new Color(0.19f, 0.21f, 0.20f),
                 Divider = new Color(0f, 0f, 0f, 0.28f),
                 CameraFill = new Color(0.34f, 0.36f, 0.35f),
+                SkyTop = new Color(0.24f, 0.27f, 0.26f), SkyHorizon = new Color(0.66f, 0.54f, 0.38f),
+                Sun = new Color(0.82f, 0.64f, 0.42f), Hill = new Color(0.16f, 0.18f, 0.16f),
             },
             new ArenaDef
             {
@@ -122,6 +150,8 @@ namespace HighNoon
                 Speck = new Color(0.21f, 0.10f, 0.10f),
                 Divider = new Color(0f, 0f, 0f, 0.32f),
                 CameraFill = new Color(0.36f, 0.19f, 0.17f),
+                SkyTop = new Color(0.14f, 0.06f, 0.08f), SkyHorizon = new Color(0.62f, 0.18f, 0.13f),
+                Sun = new Color(0.95f, 0.48f, 0.26f), Hill = new Color(0.13f, 0.06f, 0.06f),
             },
         };
 

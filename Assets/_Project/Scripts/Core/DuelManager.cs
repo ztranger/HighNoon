@@ -180,7 +180,7 @@ namespace HighNoon
                 d.ReactionSeconds = (!d.FalseStarted && _bangTime > 0 && d.Input.HasFired && d.Input.FireTimeRealtime >= _bangTime)
                     ? d.Input.FireTimeRealtime - _bangTime
                     : -1;
-                Vector3 wp = d.View.transform.position + Vector3.up * (d.Side == DuelSide.Bottom ? 1.6f : -1.6f);
+                Vector3 wp = d.View.transform.position + Vector3.up * 1.6f; // landscape: both gunslingers upright, popup above each head
                 Hud.ShowReactionAt(wp, ReactionText(d), ReactionColor(d));
 
                 // A human's winning quick-draw counts toward the fastest-reaction record.
@@ -392,7 +392,8 @@ namespace HighNoon
                 var list = d.Side == DuelSide.Bottom ? bottom : top;
                 Vector2 pos = BarPosition(d.Side, list.IndexOf(d), list.Count);
                 float gc = Random.Range(greenHalf + 0.08f, 1f - greenHalf - 0.08f);
-                var bar = Hud.AddTimingBar(d.Side == DuelSide.Top, pos, 880f, 84f, gc, greenHalf, d.Label);
+                // Landscape: bars sit on each player's half, upright (no 180° flip).
+                var bar = Hud.AddTimingBar(false, pos, 720f, 84f, gc, greenHalf, d.Label);
                 bars[d] = bar;
 
                 if (d.Kind == DuelistKind.Bot)
@@ -460,7 +461,7 @@ namespace HighNoon
             foreach (var kv in bars)
             {
                 var d = kv.Key; var bar = kv.Value;
-                Vector3 wp = d.View.transform.position + Vector3.up * (d.Side == DuelSide.Bottom ? 1.6f : -1.6f);
+                Vector3 wp = d.View.transform.position + Vector3.up * 1.6f; // landscape: popup above each head
                 bool hit = bar.IsHit(bar.LockedX);
                 bool perfect = hit && bar.Error(bar.LockedX) <= bar.GreenHalf * 0.28f;
                 string text = !hit ? "MISS" : perfect ? "PERFECT!" : "HIT";
@@ -552,14 +553,16 @@ namespace HighNoon
             Hud.Flash(new Color(1f, 0.92f, 0.82f, 0.30f), 0.10f);
         }
 
-        /// <summary>Screen-space anchored position (reference 1080×1920) for a bar on the given side.</summary>
+        /// <summary>Screen-space anchored position (reference 1920×1080) for a bar on the given side.
+        /// Landscape: the left player's bar sits on the left half of the street, the right player's on
+        /// the right half, both low so they don't cover the gunslingers' faces.</summary>
         static Vector2 BarPosition(DuelSide side, int index, int count)
         {
-            float sign = side == DuelSide.Bottom ? -1f : 1f;
-            if (count <= 1) return new Vector2(0f, sign * 430f);
-            // Two bars share a half (Coop) — stack them.
-            float y = index == 0 ? 560f : 300f;
-            return new Vector2(0f, sign * y);
+            float x = side == DuelSide.Bottom ? -470f : 470f; // Bottom = left of the street, Top = right
+            if (count <= 1) return new Vector2(x, -300f);
+            // Two humans share a side (Coop) — stack them vertically on that half.
+            float y = index == 0 ? -180f : -400f;
+            return new Vector2(x, y);
         }
 
         static void TimingTuning(out float greenHalf, out float sweepSpeed)
