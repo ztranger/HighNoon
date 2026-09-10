@@ -10,6 +10,8 @@ namespace HighNoon
     /// into a bone hierarchy so the duel animations — draw, recoil, topple, walk — are pure
     /// transform rotations with no per-frame art. The weapon is NOT part of the art: a slot in the
     /// gun hand (<see cref="SetWeapon"/>) takes the selected weapon's sprite so guns stay swappable.
+    /// An optional <c>hand.png</c> renders OVER the gun (fingers gripping it); omit it and the hand
+    /// simply stays baked in arm_fore (behind the gun).
     ///
     /// The trick: every part is drawn on the SAME full canvas, in place. Each sprite pivots at its
     /// joint (normalized within that shared canvas), so placing its bone at the joint's offset from
@@ -44,26 +46,23 @@ namespace HighNoon
             new Part("head",      "torso",     57f,  62f, 4),
             new Part("arm_upper", "torso",     70f,  70f, 5),
             new Part("arm_fore",  "arm_upper", 72f,  97f, 6),
-            new Part("hat",       "head",      57f,  22f, 8),
+            // gun mounts here at sort 7 (created after the loop)
+            new Part("hand",      "arm_fore",  72f,  97f, 8), // optional: fingers drawn OVER the gun (grips it)
+            new Part("hat",       "head",      57f,  22f, 9),
         };
-
-        // The gun hand's grip point (child of arm_fore); the weapon slot mounts here.
-        static readonly Vector2 GripJoint = new Vector2(74f, 120f);
-        // Where the grip / muzzle sit across a WeaponArt icon (64px wide; gun art starts ~x6, revolver
-        // muzzle ~x43). Scale blows the icon up so the gun reads in-hand rather than as a tiny prop.
-        const float GripFrac = 0.15f, MuzzleFrac = 0.66f;
-        const float WeaponScale = 1.8f;
 
         public Transform Root, Torso, Head, Hat, ArmUpper, ArmFore, Gun, ArmBack, LegFront, LegBack;
         public SpriteRenderer GunSprite; // the swappable weapon, mounted in the gun hand
-        public Sprite Portrait;       // head sprite, used for dialog portraits
-        public Vector3 HatHome;       // hat local position on the head (for re-attach after a topple)
+        public WeaponMount Mount;        // live-tunable fit (scale / offset / rest angle) — see WeaponMount
+        public Sprite Portrait;          // head sprite, used for dialog portraits
+        public Vector3 HatHome;          // hat local position on the head (for re-attach after a topple)
 
-        Vector3 _gunTipLocal;         // barrel muzzle in the gun anchor's local space (set by SetWeapon)
         bool _hatOff;
 
         /// <summary>World point at the gun's muzzle (follows the arm as it aims) for the flash.</summary>
-        public Vector3 MuzzleWorld => Gun != null ? Gun.TransformPoint(_gunTipLocal) : (Root != null ? Root.position : Vector3.zero);
+        public Vector3 MuzzleWorld => (Gun != null && Mount != null)
+            ? Gun.TransformPoint(Mount.MuzzleLocal)
+            : (Root != null ? Root.position : Vector3.zero);
 
         /// <summary>Builds the rig under <paramref name="parent"/>. Returns null if any part is missing
         /// (the caller then falls back to sheet / static / procedural).</summary>
@@ -86,7 +85,7 @@ namespace HighNoon
             float ppu = 0f;
 
             // create in a parent-before-child order
-            string[] order = { "torso", "head", "hat", "arm_back", "arm_upper", "arm_fore", "leg_front", "leg_back" };
+            string[] order = { "torso", "head", "hat", "arm_back", "arm_upper", "arm_fore", "hand", "leg_front", "leg_back" };
             foreach (var name in order)
             {
                 if (!TryPart(name, out var part)) continue;
@@ -94,6 +93,7 @@ namespace HighNoon
                 var tex = Resources.Load<Texture2D>($"{resBase}/{name}");
                 if (tex == null)
                 {
+                    if (name == "hand") continue; // optional overlay — fine to omit (hand stays baked in arm_fore)
                     Debug.LogWarning($"[CowboyRig] missing part Resources/{resBase}/{name} — falling back.");
                     Object.Destroy(rootGo);
                     return null;
@@ -130,11 +130,9 @@ namespace HighNoon
                 var gsr = wGo.AddComponent<SpriteRenderer>();
                 gsr.sortingOrder = 7; // above the forearm/hand (6), below the hat (8)
                 wGo.transform.SetParent(rig.ArmFore, false);
-                Vector2 fj = JointOf("arm_fore");
-                wGo.transform.localPosition = new Vector3((GripJoint.x - fj.x) * u, (fj.y - GripJoint.y) * u, 0f);
-                wGo.transform.localRotation = Quaternion.Euler(0f, 0f, -90f);
                 rig.Gun = wGo.transform;
                 rig.GunSprite = gsr;
+                rig.Mount = wGo.AddComponent<WeaponMount>(); // owns the gun's position/rotation/scale, live-tunable
             }
 
             if (rig.Hat != null) rig.HatHome = rig.Hat.localPosition;
@@ -147,11 +145,7 @@ namespace HighNoon
         {
             if (GunSprite == null) return;
             GunSprite.sprite = weapon;
-            if (weapon == null) { _gunTipLocal = Vector3.zero; return; }
-            GunSprite.transform.localScale = Vector3.one * WeaponScale;
-            float width = weapon.bounds.size.x * WeaponScale;                // world length of the icon
-            GunSprite.transform.localPosition = new Vector3((0.5f - GripFrac) * width, 0f, 0f); // grip → hand
-            _gunTipLocal = new Vector3((MuzzleFrac - GripFrac) * width, 0f, 0f);                // muzzle in anchor space
+            if (Mount != null) Mount.Init(GunSprite); // positions / scales from the inspector fields
         }
 
         static bool TryPart(string name, out Part part)

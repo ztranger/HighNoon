@@ -81,6 +81,9 @@ namespace HighNoon
 
         static readonly CowboyCharacter[] All = { HeroRig, Hero, DustyHart, RioVela, BlackCalhoun, DocGraves };
 
+        /// <summary>All characters, for preview/debug tools (e.g. the animation test scene).</summary>
+        public static CowboyCharacter[] Roster => All;
+
         // Opponents cycle through these so a stage bot is never a copy of the player's look.
         static readonly CowboyCharacter[] Villains = { BlackCalhoun, DocGraves, RioVela, DustyHart };
 
