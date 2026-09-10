@@ -36,15 +36,31 @@ namespace HighNoon
 
         CowboyFrames _frames;  // sheet or procedural
 
+        bool _skeletal;        // cut-out bone rig mode
+        CowboyRig _rig;
+
+        Sprite[] WalkFrames =>
+            _frames != null && _frames.Walk != null && _frames.Walk.Length > 0 ? _frames.Walk : _frames?.Idle;
+
         static Sprite _flash;  // shared muzzle-flash sprite (static mode only)
 
         /// <summary>Idle sprite for UI portraits.</summary>
-        public Sprite IdlePortrait => _static
-            ? _staticSprite
-            : (_frames != null && _frames.Idle != null && _frames.Idle.Length > 0 ? _frames.Idle[0] : null);
+        public Sprite IdlePortrait => _skeletal
+            ? _rig?.Portrait
+            : _static
+                ? _staticSprite
+                : (_frames != null && _frames.Idle != null && _frames.Idle.Length > 0 ? _frames.Idle[0] : null);
 
         /// <summary>World point a reaction/accuracy popup pins to (above the head in every mode).</summary>
         public Vector3 PopupAnchor => transform.position + Vector3.up * _popupUp;
+
+        /// <summary>Mount the duelist's weapon in the gun hand (skeletal rig only; a no-op otherwise —
+        /// sheet/procedural cowboys carry their gun in their own art).</summary>
+        public void SetWeapon(WeaponDef weapon)
+        {
+            if (!_skeletal || _rig == null || weapon == null) return;
+            _rig.SetWeapon(WeaponArt.For(Weapons.IndexOf(weapon)));
+        }
 
         /// <summary><paramref name="rightSide"/> = this duelist stands on the right of the street
         /// (walks in from the right, sprite mirrored to face left toward the centre).</summary>
@@ -56,6 +72,21 @@ namespace HighNoon
 
             _anim = gameObject.AddComponent<FrameAnimator>();
             _anim.Init(sr);
+
+            // 0) Cut-out skeletal rig? (code-built bones from separate part PNGs)
+            if (_char != null && !string.IsNullOrEmpty(_char.RigBase))
+            {
+                _rig = CowboyRig.Build(transform, _char.RigBase, _char.RigHeight, sr.sortingOrder, mirror: rightSide);
+                if (_rig != null)
+                {
+                    _skeletal = true;
+                    _sr.enabled = false; // the body is the child bones; the base renderer stays empty
+                    ResetPose();
+                    PlantOnStreet();
+                    _popupUp = _char.RigHeight * 0.98f;
+                    return;
+                }
+            }
 
             // 1) Animated sprite sheet?
             if (_char != null && !string.IsNullOrEmpty(_char.SheetBase))
@@ -117,8 +148,9 @@ namespace HighNoon
             StopAllCoroutines();
             transform.rotation = Quaternion.identity;
             transform.position = _offscreenPos;
+            if (_skeletal) { ResetPose(); StartCoroutine(RigWalk()); return; }
             if (_static) _anim.ShowStatic(_staticSprite);
-            else _anim.Play(_frames.Idle, FpsWalk, loop: true);
+            else _anim.Play(WalkFrames, FpsWalk, loop: true);
         }
 
         /// <summary>Walk-in runs on this view so <see cref="SetIdleOffscreen"/> can stop it.</summary>
@@ -131,24 +163,36 @@ namespace HighNoon
 
         IEnumerator WalkIn(float duration)
         {
-            if (_static) _anim.ShowStatic(_staticSprite);
-            else _anim.Play(_frames.Idle, FpsWalk, loop: true);
+            if (_skeletal) { /* legs/arms swing below */ }
+            else if (_static) _anim.ShowStatic(_staticSprite);
+            else _anim.Play(WalkFrames, FpsWalk, loop: true);
 
-            float t = 0f;
+            float t = 0f, wt = 0f;
             Vector3 start = _offscreenPos;
             while (t < duration)
             {
                 t += Time.deltaTime;
                 Vector3 pos = Vector3.Lerp(start, _homePos, Mathf.Clamp01(t / duration));
-                if (_static) pos.y += Mathf.Abs(Mathf.Sin(t * 10f)) * 0.06f; // procedural footstep bob
+                if (_skeletal) { wt += Time.deltaTime; RigWalkStep(wt); pos.y += Mathf.Abs(Mathf.Sin(wt * 12f)) * 0.05f; }
+                else if (_static) pos.y += Mathf.Abs(Mathf.Sin(t * 10f)) * 0.06f; // procedural footstep bob
                 transform.position = pos;
                 yield return null;
             }
             transform.position = _homePos;
+            if (_skeletal) ResetPose();
         }
 
         public void Stance()
         {
+            if (_skeletal)
+            {
+                StopAllCoroutines();
+                transform.rotation = Quaternion.identity;
+                transform.position = _homePos;
+                ResetPose();
+                StartCoroutine(RigBreathe());
+                return;
+            }
             if (!_static) { _anim.Play(_frames.Ready, FpsIdle, loop: true); return; }
             StopAllCoroutines();
             transform.rotation = Quaternion.identity;
@@ -159,6 +203,7 @@ namespace HighNoon
 
         public void PlayShoot()
         {
+            if (_skeletal) { StopAllCoroutines(); StartCoroutine(RigShoot()); return; }
             if (!_static) { _anim.Play(_frames.Shoot, FpsShoot, loop: false); return; }
             StopAllCoroutines();
             SpawnMuzzleFlash();
@@ -167,6 +212,7 @@ namespace HighNoon
 
         public void PlayDeath()
         {
+            if (_skeletal) { StopAllCoroutines(); StartCoroutine(RigTopple()); return; }
             if (!_static) { _anim.Play(_frames.Death, FpsDeath, loop: false); return; }
             StopAllCoroutines();
             StartCoroutine(Topple());
@@ -211,6 +257,108 @@ namespace HighNoon
                 yield return null;
             }
             transform.rotation = Quaternion.Euler(0f, 0f, sign * angle);
+        }
+
+        // ---- skeletal (cut-out) code animation ----
+        const float ArmAim = 76f, ForeAim = 8f; // degrees to raise the gun arm from hanging to aiming right
+
+        static void SetZ(Transform t, float z) { if (t) t.localRotation = Quaternion.Euler(0f, 0f, z); }
+
+        void ResetPose()
+        {
+            if (_rig == null) return;
+            SetZ(_rig.Root, 0f); SetZ(_rig.Torso, 0f); SetZ(_rig.Head, 0f);
+            SetZ(_rig.ArmUpper, 0f); SetZ(_rig.ArmFore, 0f); SetZ(_rig.ArmBack, 0f);
+            SetZ(_rig.LegFront, 0f); SetZ(_rig.LegBack, 0f);
+            // note: _rig.Gun keeps its baked -90° (barrel-down) baseline — do not reset it
+            _rig.ReattachHat();
+        }
+
+        void RigWalkStep(float t)
+        {
+            float s = Mathf.Sin(t * 9f);
+            SetZ(_rig.LegFront, s * 22f);
+            SetZ(_rig.LegBack, -s * 22f);
+            SetZ(_rig.ArmUpper, -s * 14f);
+            SetZ(_rig.ArmBack, s * 16f);
+            SetZ(_rig.Torso, Mathf.Sin(t * 18f) * 1.6f);
+        }
+
+        IEnumerator RigWalk()
+        {
+            float t = 0f;
+            while (true) { t += Time.deltaTime; RigWalkStep(t); yield return null; }
+        }
+
+        IEnumerator RigBreathe()
+        {
+            while (true)
+            {
+                float b = Mathf.Sin(Time.time * 2.2f);
+                SetZ(_rig.Torso, b * 1.6f);
+                SetZ(_rig.Head, -b * 1.1f);
+                SetZ(_rig.ArmUpper, b * 2.2f);
+                SetZ(_rig.ArmBack, -b * 2.2f);
+                yield return null;
+            }
+        }
+
+        IEnumerator RigShoot()
+        {
+            Quaternion u0 = _rig.ArmUpper.localRotation, f0 = _rig.ArmFore.localRotation;
+            Quaternion uAim = Quaternion.Euler(0f, 0f, ArmAim), fAim = Quaternion.Euler(0f, 0f, ForeAim);
+
+            // whip the arm up to aim
+            float t = 0f, d = 0.06f;
+            while (t < d) { t += Time.deltaTime; float k = t / d; _rig.ArmUpper.localRotation = Quaternion.Slerp(u0, uAim, k); _rig.ArmFore.localRotation = Quaternion.Slerp(f0, fAim, k); yield return null; }
+            _rig.ArmUpper.localRotation = uAim; _rig.ArmFore.localRotation = fAim;
+
+            SpawnMuzzleFlashSkeletal();
+
+            // recoil kick, then settle back to the aim hold
+            Quaternion uKick = Quaternion.Euler(0f, 0f, ArmAim - 12f);
+            t = 0f; d = 0.05f;
+            while (t < d) { t += Time.deltaTime; float k = t / d; _rig.ArmUpper.localRotation = Quaternion.Slerp(uAim, uKick, k); SetZ(_rig.Torso, -3f * k); yield return null; }
+            t = 0f; d = 0.12f;
+            while (t < d) { t += Time.deltaTime; float k = t / d; _rig.ArmUpper.localRotation = Quaternion.Slerp(uKick, uAim, k); SetZ(_rig.Torso, -3f * (1f - k)); yield return null; }
+            _rig.ArmUpper.localRotation = uAim; SetZ(_rig.Torso, 0f);
+        }
+
+        IEnumerator RigTopple()
+        {
+            _rig.DetachHat(transform); // hat rides its own arc, not the falling body
+            Vector3 hatStart = _rig.Hat != null ? _rig.Hat.position : Vector3.zero;
+            Quaternion hatQ0 = _rig.Hat != null ? _rig.Hat.rotation : Quaternion.identity;
+            float back = _rightSide ? 1f : -1f; // fall backward, away from the centre (mirror handles the root)
+
+            const float angle = 80f;
+            float t = 0f, dur = 0.55f;
+            while (t < dur)
+            {
+                t += Time.deltaTime;
+                float k = Mathf.Clamp01(t / dur), e = k * k; // ease-in: hangs, then drops
+                SetZ(_rig.Root, angle * e);
+                if (_rig.Hat != null)
+                {
+                    float hk = Mathf.Clamp01(t / 0.5f);
+                    _rig.Hat.position = hatStart + new Vector3(back * 0.55f * hk, 0.4f * Mathf.Sin(hk * Mathf.PI), 0f);
+                    _rig.Hat.rotation = hatQ0 * Quaternion.Euler(0f, 0f, -back * 240f * hk);
+                }
+                yield return null;
+            }
+            SetZ(_rig.Root, angle);
+        }
+
+        void SpawnMuzzleFlashSkeletal()
+        {
+            if (_flash == null) _flash = BuildFlashSprite();
+            var go = new GameObject("MuzzleFlash");
+            var fsr = go.AddComponent<SpriteRenderer>();
+            fsr.sprite = _flash;
+            fsr.sortingOrder = 60;
+            go.transform.position = _rig.MuzzleWorld;
+            go.transform.localScale = Vector3.one * 0.5f;
+            Destroy(go, 0.06f);
         }
 
         void SpawnMuzzleFlash()

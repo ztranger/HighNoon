@@ -49,9 +49,28 @@ namespace HighNoon
                 Ready = Row(cells, cols, 0), // hold in idle until the shot
                 Shoot = Row(cells, cols, 1),
                 Death = Row(cells, cols, 2),
+                Walk  = LoadSeq(c.WalkBase, 8, ppu, c.FeetInset) ?? Row(cells, cols, 0),
             };
             Cache[c.Id] = frames;
             return frames;
+        }
+
+        static Sprite[] LoadSeq(string pathBase, int count, float ppu, float feetInset)
+        {
+            if (string.IsNullOrEmpty(pathBase) || count <= 0) return null;
+            var a = new Sprite[count];
+            for (int i = 0; i < count; i++)
+            {
+                var tex = Resources.Load<Texture2D>($"{pathBase}_{i:00}");
+                if (tex == null) return null;
+                tex.filterMode = FilterMode.Point;
+                var s = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height),
+                    new Vector2(0.5f, feetInset), ppu, 0, SpriteMeshType.FullRect);
+                s.name = $"{pathBase}_{i:00}";
+                s.hideFlags = HideFlags.HideAndDontSave;
+                a[i] = s;
+            }
+            return a;
         }
 
         static Sprite[] Row(Sprite[] cells, int cols, int row)

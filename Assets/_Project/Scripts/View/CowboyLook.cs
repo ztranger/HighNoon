@@ -40,7 +40,7 @@ namespace HighNoon
             Shirt = new Color(0.82f, 0.62f, 0.36f),
             Accent = new Color(0.80f, 0.20f, 0.18f),
             Chest = Accessory.Bandana,
-            CharacterId = "hero", // animated 6x4 sheet; falls back to static/procedural if the art is missing
+            CharacterId = "hero_rig", // cut-out skeletal rig; falls back to sheet/static/procedural if the art is missing
         };
 
         public static CowboyLook Player2() => new CowboyLook

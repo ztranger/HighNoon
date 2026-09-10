@@ -28,6 +28,13 @@ namespace HighNoon
         public static int Count => All.Length;
         public static WeaponDef Get(int index) => All[Mathf.Clamp(index, 0, All.Length - 1)];
 
+        /// <summary>Roster index of a weapon (0 if not found) — e.g. to fetch its <see cref="WeaponArt"/> icon.</summary>
+        public static int IndexOf(WeaponDef def)
+        {
+            for (int i = 0; i < All.Length; i++) if (All[i] == def) return i;
+            return 0;
+        }
+
         /// <summary>The weapon the player picked in the menu (default = revolver).</summary>
         public static WeaponDef Selected => Get(GameSettings.SelectedWeapon);
 

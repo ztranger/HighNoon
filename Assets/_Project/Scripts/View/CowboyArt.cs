@@ -10,6 +10,7 @@ namespace HighNoon
         public Sprite[] Ready;
         public Sprite[] Shoot;
         public Sprite[] Death;
+        public Sprite[] Walk; // optional; DuelistView falls back to Idle
     }
 
     /// <summary>
@@ -46,6 +47,7 @@ namespace HighNoon
                 Ready = new[] { Frame(p, Pose.Ready) },
                 Shoot = new[] { Frame(p, Pose.Shoot0), Frame(p, Pose.Shoot1) },
                 Death = new[] { Frame(p, Pose.Dead0), Frame(p, Pose.Dead1) },
+                Walk  = new[] { Frame(p, Pose.Idle0), Frame(p, Pose.Idle1) },
             };
             Cache[key] = frames;
             return frames;

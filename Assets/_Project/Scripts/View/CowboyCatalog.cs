@@ -24,6 +24,14 @@ namespace HighNoon
         public string SheetBase;
         public int SheetCols = 6, SheetRows = 4;
         public float FeetInset = 0.05f;              // fraction of cell height the feet sit above the cell bottom
+        public string WalkBase;                      // optional "{path}/hero_walk_00".. — in-place walk cycle
+
+        // --- cut-out skeletal rig (optional) ---
+        // When RigBase is set, DuelistView builds a CowboyRig from the eight part PNGs in that Resources
+        // folder (torso/head/hat/arm_*/leg_*) and animates draw/recoil/topple/walk from code. The gun is
+        // NOT baked in — the selected weapon sprite mounts in the hand. Takes priority over SheetBase / ResourcePath.
+        public string RigBase;
+        public float RigHeight = 3.4f;               // feet → hat-top world height
     }
 
     /// <summary>
@@ -60,10 +68,18 @@ namespace HighNoon
         {
             Id = "hero", FacesRight = true, Height = 3.6f,
             SheetBase = "Art/Cowboys/high_noon_hero_sprites/frames/hero_sheet_4x6",
-            SheetCols = 6, SheetRows = 4, FeetInset = 0.05f,
+            WalkBase = "Art/Cowboys/high_noon_hero_sprites/frames/hero_walk",
+            SheetCols = 6, SheetRows = 4, FeetInset = 11f / 196f,
         };
 
-        static readonly CowboyCharacter[] All = { Hero, DustyHart, RioVela, BlackCalhoun, DocGraves };
+        /// <summary>Cut-out skeletal cowboy (eight part PNGs; weapon mounts in the hand) — the code-built bone rig.</summary>
+        public static readonly CowboyCharacter HeroRig = new CowboyCharacter
+        {
+            Id = "hero_rig", FacesRight = true, RigHeight = 3.4f,
+            RigBase = "Art/Cowboys/hero_rig",
+        };
+
+        static readonly CowboyCharacter[] All = { HeroRig, Hero, DustyHart, RioVela, BlackCalhoun, DocGraves };
 
         // Opponents cycle through these so a stage bot is never a copy of the player's look.
         static readonly CowboyCharacter[] Villains = { BlackCalhoun, DocGraves, RioVela, DustyHart };

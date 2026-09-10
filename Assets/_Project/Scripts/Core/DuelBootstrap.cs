@@ -207,8 +207,11 @@ namespace HighNoon
             var sr = go.AddComponent<SpriteRenderer>();
             sr.sortingOrder = 10;
 
+            var weapon = isBot ? Weapons.Default : Weapons.Selected;
+
             var view = go.AddComponent<DuelistView>();
             view.Setup(sr, look, rightSide: side == DuelSide.Top);
+            view.SetWeapon(weapon); // skeletal rig mounts the gun in-hand; no-op for other modes
 
             IDuelInput input = isBot
                 ? (IDuelInput)new BotDuelInput(botConfig)
@@ -223,7 +226,7 @@ namespace HighNoon
                 Input = input,
                 View = view,
                 Label = label,
-                Weapon = isBot ? Weapons.Default : Weapons.Selected,
+                Weapon = weapon,
             };
         }
 

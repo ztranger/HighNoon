@@ -13,13 +13,16 @@ namespace HighNoon
 
         public static void Overlay(GameObject host, float matchWidthOrHeight = 0.5f)
         {
-            var canvas = host.GetComponent<Canvas>() ?? host.AddComponent<Canvas>();
+            // `??` skips AddComponent on Unity's fake-null GetComponent result.
+            if (!host.TryGetComponent<Canvas>(out var canvas))
+                canvas = host.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            var scaler = host.GetComponent<CanvasScaler>() ?? host.AddComponent<CanvasScaler>();
+            if (!host.TryGetComponent<CanvasScaler>(out var scaler))
+                scaler = host.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = Ref;
             scaler.matchWidthOrHeight = matchWidthOrHeight;
-            if (host.GetComponent<GraphicRaycaster>() == null)
+            if (!host.TryGetComponent<GraphicRaycaster>(out _))
                 host.AddComponent<GraphicRaycaster>();
         }
     }
