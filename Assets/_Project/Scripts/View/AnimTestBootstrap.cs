@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Events;
@@ -15,6 +17,7 @@ namespace HighNoon
     {
         DuelistView _view;
         GameObject _cowboy;
+        List<CowboyCharacter> _roster;
         int _charIndex, _weaponIndex;
         bool _rightSide;
 
@@ -27,10 +30,38 @@ namespace HighNoon
             AppInit.Apply();
             Screen.orientation = ScreenOrientation.LandscapeLeft; // the rig is a landscape side-view
             _font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            _roster = BuildRoster();
             SetupCamera();
             SetupEventSystem();
             BuildUI();
             Spawn();
+        }
+
+        /// <summary>Code catalog + any rig folder found under Resources/Art/Cowboys (auto-added on import).</summary>
+        static List<CowboyCharacter> BuildRoster()
+        {
+            var list = new List<CowboyCharacter>(CowboyCatalog.Roster);
+#if UNITY_EDITOR
+            var haveRig = new HashSet<string>();
+            foreach (var c in list)
+                if (!string.IsNullOrEmpty(c.RigBase)) haveRig.Add(c.RigBase);
+
+            string dir = Path.Combine(Application.dataPath, "_Project/Resources/Art/Cowboys");
+            if (Directory.Exists(dir))
+            {
+                var folders = Directory.GetDirectories(dir);
+                System.Array.Sort(folders);
+                foreach (var f in folders)
+                {
+                    if (!File.Exists(Path.Combine(f, "torso.png"))) continue; // a rig folder has the parts
+                    string id = Path.GetFileName(f);
+                    string rigBase = "Art/Cowboys/" + id;
+                    if (haveRig.Contains(rigBase)) continue; // already a hand-authored character
+                    list.Add(new CowboyCharacter { Id = id, FacesRight = true, RigHeight = 3.4f, RigBase = rigBase });
+                }
+            }
+#endif
+            return list;
         }
 
         void SetupCamera()
@@ -60,14 +91,14 @@ namespace HighNoon
         void Spawn()
         {
             if (_cowboy != null) Destroy(_cowboy);
-            var c = CowboyCatalog.Roster[_charIndex];
+            var c = _roster[_charIndex];
             _cowboy = new GameObject("PreviewCowboy");
             _cowboy.transform.position = Vector3.zero;
             _cowboy.transform.localScale = Vector3.one * 1.8f; // procedural mode keeps this; rig/sheet reset to 1
             var sr = _cowboy.AddComponent<SpriteRenderer>();
             sr.sortingOrder = 10;
             _view = _cowboy.AddComponent<DuelistView>();
-            _view.Setup(sr, new CowboyLook { CharacterId = c.Id }, _rightSide);
+            _view.SetupCharacter(sr, c, _rightSide);
             _view.SetWeapon(Weapons.Get(_weaponIndex));
             _view.Stance();
             UpdateLabels();
@@ -75,7 +106,7 @@ namespace HighNoon
 
         void UpdateLabels()
         {
-            var c = CowboyCatalog.Roster[_charIndex];
+            var c = _roster[_charIndex];
             if (_charLabel) _charLabel.text = $"CHARACTER:  {c.Id}";
             if (_weaponLabel) _weaponLabel.text = $"WEAPON:  {Weapons.Get(_weaponIndex).Name}";
             if (_modeLabel) _modeLabel.text = _rightSide ? "FACING: LEFT (mirrored)" : "FACING: RIGHT";
@@ -83,7 +114,7 @@ namespace HighNoon
 
         void CycleChar(int d)
         {
-            int n = CowboyCatalog.Roster.Length;
+            int n = _roster.Count;
             _charIndex = ((_charIndex + d) % n + n) % n;
             Spawn();
         }

@@ -65,10 +65,17 @@ namespace HighNoon
         /// <summary><paramref name="rightSide"/> = this duelist stands on the right of the street
         /// (walks in from the right, sprite mirrored to face left toward the centre).</summary>
         public void Setup(SpriteRenderer sr, CowboyLook look, bool rightSide)
+            => SetupInternal(sr, ResolveCharacter(look), look, rightSide);
+
+        /// <summary>Set up with an explicit character (preview/debug tools bypass look-based resolution).</summary>
+        public void SetupCharacter(SpriteRenderer sr, CowboyCharacter character, bool rightSide)
+            => SetupInternal(sr, character, null, rightSide);
+
+        void SetupInternal(SpriteRenderer sr, CowboyCharacter character, CowboyLook look, bool rightSide)
         {
             _sr = sr;
             _rightSide = rightSide;
-            _char = ResolveCharacter(look);
+            _char = character;
 
             _anim = gameObject.AddComponent<FrameAnimator>();
             _anim.Init(sr);
@@ -115,7 +122,7 @@ namespace HighNoon
             }
 
             // 3) Procedural fallback (unchanged framing: centre pivot, bootstrap scale).
-            _frames = CowboyArt.Build(look);
+            _frames = CowboyArt.Build(look ?? new CowboyLook());
             _static = false;
             _sr.sprite = _frames.Idle[0];
             _sr.flipX = rightSide;
