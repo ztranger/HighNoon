@@ -105,6 +105,18 @@ namespace HighNoon
             FeetInset = 0f,
         };
 
+        /// <summary>Native archer — 8-frame strips (walk / idle / shoot / death).</summary>
+        public static readonly CowboyCharacter NativeArcher = new CowboyCharacter
+        {
+            Id = "native_archer", FacesRight = true, Height = 3.2f,
+            Atlas      = "Art/Cowboys/sheets/native_archer/walk",
+            IdleAtlas  = "Art/Cowboys/sheets/native_archer/idle",
+            ShootAtlas = "Art/Cowboys/sheets/native_archer/shoot",
+            DeathAtlas = "Art/Cowboys/sheets/native_archer/death",
+            SheetCols = 8, SheetRows = 1,
+            FeetInset = 0f,
+        };
+
         /// <summary>Cut-out skeletal cowboy (eight part PNGs; weapon mounts in the hand) — the code-built bone rig.</summary>
         public static readonly CowboyCharacter HeroRig = new CowboyCharacter
         {
@@ -112,7 +124,7 @@ namespace HighNoon
             RigBase = "Art/Cowboys/hero_rig",
         };
 
-        static readonly CowboyCharacter[] All = { Gunslinger, SaloonSinger, HeroRig, Hero, DustyHart, RioVela, BlackCalhoun, DocGraves };
+        static readonly CowboyCharacter[] All = { Gunslinger, SaloonSinger, NativeArcher, HeroRig, Hero, DustyHart, RioVela, BlackCalhoun, DocGraves };
 
         /// <summary>All characters, for preview/debug tools (e.g. the animation test scene).</summary>
         public static CowboyCharacter[] Roster => All;

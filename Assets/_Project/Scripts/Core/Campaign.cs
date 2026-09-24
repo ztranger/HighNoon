@@ -78,10 +78,15 @@ namespace HighNoon
                     new StageDef
                     {
                         Title = "Canyon Ambush", Arena = "Red Canyon", Difficulty = Difficulty.Normal,
-                        Look = new CowboyLook { Shirt = new Color(0.38f, 0.32f, 0.28f), HatColor = new Color(0.40f, 0.30f, 0.18f), Accent = new Color(0.80f, 0.22f, 0.20f), HatType = HatStyle.Sombrero, Chest = Accessory.Bandana, Facial = FacialHair.Beard },
+                        Look = new CowboyLook
+                        {
+                            Shirt = new Color(0.72f, 0.58f, 0.38f),
+                            Accent = new Color(0.55f, 0.22f, 0.16f),
+                            CharacterId = "native_archer",
+                        },
                         Intro = new[]
                         {
-                            new DialogLine(Speaker.Opponent, "Should've watched the ridgeline, amigo."),
+                            new DialogLine(Speaker.Opponent, "Should've watched the ridgeline."),
                             new DialogLine(Speaker.You,      "Should've picked a bigger gang."),
                         },
                     },
