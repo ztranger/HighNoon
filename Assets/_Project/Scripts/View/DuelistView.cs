@@ -95,8 +95,8 @@ namespace HighNoon
                 }
             }
 
-            // 1) Animated sprite sheet?
-            if (_char != null && !string.IsNullOrEmpty(_char.SheetBase))
+            // 1) Animated sprite sheet? Packed 6×4 or per-anim strips (walk/idle/shoot/death).
+            if (_char != null)
                 _frames = CowboySheet.Load(_char);
 
             if (_frames != null)

@@ -16,15 +16,23 @@ namespace HighNoon
         public Vector2 Muzzle = new Vector2(0.36f, 0.46f); // static only: approx gun muzzle, normalized: x out from center, y up from feet
 
         // --- animated sprite sheet (optional) ---
-        // When SheetBase is set, DuelistView plays real frames (idle/shoot/death) instead of a
-        // static pose. Per HIGH_NOON_INTEGRATION.md the sheet is 6 cols x 4 rows:
-        // row0 idle-right, row1 shoot-right (flash on frame 3), row2 death-right, row3 idle-left.
-        // We use rows 0-2 and mirror to face left via flipX. Frames are loaded from the pre-cut,
-        // uniform-cell PNGs "{SheetBase}_00".."_NN" (the master sheet has ragged trailing padding).
+        // Atlas: one PNG per clip, sliced at runtime on a uniform SheetCols×SheetRows grid
+        // (UV rects on the same texture). Walk = Atlas; optional IdleAtlas / ShootAtlas / DeathAtlas.
+        // Missing clips fall back (idle = last walk column; shoot/death = idle).
+        // SheetBase: legacy packed 6×4 as "{SheetBase}_00".. files.
+        public string Atlas;                          // walk (or the only clip)
+        public string IdleAtlas;
+        public string ShootAtlas;
+        public string DeathAtlas;
+        public int DeathCols;                        // 0 = SheetCols (death may be an 8×1 strip)
+        public int DeathRows;
         public string SheetBase;
         public int SheetCols = 6, SheetRows = 4;
         public float FeetInset = 0.05f;              // fraction of cell height the feet sit above the cell bottom
-        public string WalkBase;                      // optional "{path}/hero_walk_00".. — in-place walk cycle
+        public string WalkBase;                      // optional "{path}/walk_00".. — in-place walk cycle
+        public string IdleBase;                      // optional "{path}/idle_00"..
+        public string ShootBase;                     // optional "{path}/shoot_00"..
+        public string DeathBase;                     // optional "{path}/death_00"..
 
         // --- cut-out skeletal rig (optional) ---
         // When RigBase is set, DuelistView builds a CowboyRig from the eight part PNGs in that Resources
@@ -72,6 +80,31 @@ namespace HighNoon
             SheetCols = 6, SheetRows = 4, FeetInset = 11f / 196f,
         };
 
+        /// <summary>Side-view gunslinger — one atlas per clip (walk / idle / shoot / death), all 4×2.</summary>
+        public static readonly CowboyCharacter Gunslinger = new CowboyCharacter
+        {
+            Id = "gunslinger", FacesRight = true, Height = 3.6f,
+            Atlas      = "Art/Cowboys/sheets/gunslinger/walk",
+            IdleAtlas  = "Art/Cowboys/sheets/gunslinger/idle",
+            ShootAtlas = "Art/Cowboys/sheets/gunslinger/shoot",
+            DeathAtlas = "Art/Cowboys/sheets/gunslinger/death",
+            SheetCols = 4, SheetRows = 2,
+            DeathCols = 8, DeathRows = 1,
+            FeetInset = 0f, // raw grid cells — feet alignment is done in the atlas tool
+        };
+
+        /// <summary>Saloon singer — 8-frame strips (walk / idle / shoot / death).</summary>
+        public static readonly CowboyCharacter SaloonSinger = new CowboyCharacter
+        {
+            Id = "saloon_singer", FacesRight = true, Height = 3.2f,
+            Atlas      = "Art/Cowboys/sheets/saloon_singer/walk",
+            IdleAtlas  = "Art/Cowboys/sheets/saloon_singer/idle",
+            ShootAtlas = "Art/Cowboys/sheets/saloon_singer/shoot",
+            DeathAtlas = "Art/Cowboys/sheets/saloon_singer/death",
+            SheetCols = 8, SheetRows = 1,
+            FeetInset = 0f,
+        };
+
         /// <summary>Cut-out skeletal cowboy (eight part PNGs; weapon mounts in the hand) — the code-built bone rig.</summary>
         public static readonly CowboyCharacter HeroRig = new CowboyCharacter
         {
@@ -79,7 +112,7 @@ namespace HighNoon
             RigBase = "Art/Cowboys/hero_rig",
         };
 
-        static readonly CowboyCharacter[] All = { HeroRig, Hero, DustyHart, RioVela, BlackCalhoun, DocGraves };
+        static readonly CowboyCharacter[] All = { Gunslinger, SaloonSinger, HeroRig, Hero, DustyHart, RioVela, BlackCalhoun, DocGraves };
 
         /// <summary>All characters, for preview/debug tools (e.g. the animation test scene).</summary>
         public static CowboyCharacter[] Roster => All;

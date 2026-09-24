@@ -61,11 +61,16 @@ namespace HighNoon
                     },
                     new StageDef
                     {
-                        Title = "Town Trouble", Arena = "Dusty Town", Difficulty = Difficulty.Easy,
-                        Look = new CowboyLook { Shirt = new Color(0.80f, 0.30f, 0.28f), HatColor = new Color(0.28f, 0.20f, 0.14f), Accent = new Color(0.30f, 0.20f, 0.15f), HatType = HatStyle.Cowboy, Chest = Accessory.Vest },
+                        Title = "The Saloon Singer", Arena = "Dusty Town", Difficulty = Difficulty.Easy,
+                        Look = new CowboyLook
+                        {
+                            Shirt = new Color(0.72f, 0.18f, 0.22f),
+                            Accent = new Color(0.90f, 0.72f, 0.28f),
+                            CharacterId = "saloon_singer",
+                        },
                         Intro = new[]
                         {
-                            new DialogLine(Speaker.Opponent, "This here's my street. Turn around."),
+                            new DialogLine(Speaker.Opponent, "This saloon's mine. Turn around, cowboy."),
                             new DialogLine(Speaker.You,      "I don't turn around."),
                             new DialogLine(Speaker.Opponent, "Then reach for it."),
                         },
