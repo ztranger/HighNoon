@@ -1,0 +1,12 @@
+<!doctype html><meta charset="utf-8"><title>CabaretSinger3 — preview</title>
+<style>
+body{background:#29272c;color:#eee;font:16px system-ui;margin:24px}main{display:flex;flex-wrap:wrap;gap:20px}.frame{width:384px;height:384px;background-color:#514b50;background-image:linear-gradient(45deg,#595258 25%,transparent 25%),linear-gradient(-45deg,#595258 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#595258 75%),linear-gradient(-45deg,transparent 75%,#595258 75%);background-size:32px 32px;background-position:0 0,0 16px,16px -16px,-16px 0}.sprite{width:384px;height:384px;image-rendering:pixelated;background-repeat:no-repeat}button{padding:8px 16px;cursor:pointer}h2{font-size:18px}
+</style>
+<h1>CabaretSinger3</h1><p>8 frames · 384 × 384 · 125 ms/frame · baseline y=351</p>
+<button onclick="started=performance.now()">Replay</button><main id="sheets"></main>
+<script>
+const names=['Idle','Walk','Shoot','Death'];
+for(const name of names){const section=document.createElement('section');section.innerHTML=`<h2>${name}</h2><div class="frame"><div class="sprite" data-name="${name}" style="background-image:url(CabaretSinger3_${name}.png)"></div></div>`;sheets.append(section)}
+let started=performance.now();
+function update(now){let frame=Math.floor((now-started)/125);document.querySelectorAll('.sprite').forEach(el=>{let i=el.dataset.name==='Death'?Math.min(frame,7):frame%8;el.style.backgroundPosition=`${-i*384}px 0`});requestAnimationFrame(update)}requestAnimationFrame(update);
+</script>

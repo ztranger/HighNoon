@@ -1,0 +1,6 @@
+{
+  "Shoot": "frame 1: 114x320, bottom=351; frame 2: 132x320, bottom=351; frame 3: 147x317, bottom=351; frame 4: 145x319, bottom=351; frame 5: 155x320, bottom=351; frame 6: 142x318, bottom=351; frame 7: 115x319, bottom=351; frame 8: 115x319, bottom=351",
+  "Death": "frame 1: 115x320, bottom=351; frame 2: 170x293, bottom=351; frame 3: 130x266, bottom=351; frame 4: 156x228, bottom=351; frame 5: 257x147, bottom=351; frame 6: 287x118, bottom=351; frame 7: 279x72, bottom=351; frame 8: 272x67, bottom=351",
+  "Idle": "frame 1: 111x320, bottom=351; frame 2: 113x330, bottom=351; frame 3: 115x331, bottom=351; frame 4: 114x336, bottom=351; frame 5: 113x325, bottom=351; frame 6: 111x325, bottom=351; frame 7: 110x325, bottom=351; frame 8: 111x322, bottom=351",
+  "Walk": "frame 1: 133x320, bottom=351; frame 2: 122x327, bottom=351; frame 3: 120x327, bottom=351; frame 4: 128x327, bottom=351; frame 5: 121x323, bottom=351; frame 6: 114x325, bottom=351; frame 7: 125x325, bottom=351; frame 8: 122x325, bottom=351"
+}

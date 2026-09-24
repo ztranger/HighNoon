@@ -111,19 +111,29 @@ namespace HighNoon
                     },
                     new StageDef
                     {
-                        Title = "The Trapper", Arena = "Green Valley", Difficulty = Difficulty.Normal,
-                        Look = new CowboyLook { Shirt = new Color(0.50f, 0.38f, 0.26f), HatColor = new Color(0.32f, 0.24f, 0.16f), Accent = new Color(0.60f, 0.45f, 0.30f), HatType = HatStyle.Bowler, Chest = Accessory.Poncho, Facial = FacialHair.Beard },
+                        Title = "The Headliner", Arena = "Green Valley", Difficulty = Difficulty.Normal,
+                        Look = new CowboyLook
+                        {
+                            Shirt = new Color(0.72f, 0.22f, 0.18f),
+                            Accent = new Color(0.90f, 0.70f, 0.28f),
+                            CharacterId = "cabaret_singer_3",
+                        },
                         Intro = new[]
                         {
-                            new DialogLine(Speaker.Opponent, "I catch what runs. You runnin'?"),
-                            new DialogLine(Speaker.You,      "Not from the likes of you."),
-                            new DialogLine(Speaker.Opponent, "Then you're already in the snare."),
+                            new DialogLine(Speaker.Opponent, "Tonight's bill says one gunslinger. That's you."),
+                            new DialogLine(Speaker.You,      "I don't do encores."),
+                            new DialogLine(Speaker.Opponent, "Good. I only need one shot."),
                         },
                     },
                     new StageDef
                     {
-                        Title = "Dead-Eye Dean", Arena = "Salt Flats", Difficulty = Difficulty.Normal,
-                        Look = new CowboyLook { Shirt = new Color(0.62f, 0.60f, 0.58f), HatColor = new Color(0.20f, 0.20f, 0.22f), Accent = new Color(0.72f, 0.20f, 0.20f), HatType = HatStyle.Cowboy, Chest = Accessory.Bandana },
+                        Title = "The Showgirl", Arena = "Salt Flats", Difficulty = Difficulty.Normal,
+                        Look = new CowboyLook
+                        {
+                            Shirt = new Color(0.55f, 0.14f, 0.16f),
+                            Accent = new Color(0.90f, 0.70f, 0.28f),
+                            CharacterId = "cabaret_singer_2",
+                        },
                         Intro = new[]
                         {
                             new DialogLine(Speaker.Opponent, "Never missed a shot in my life."),
@@ -151,19 +161,29 @@ namespace HighNoon
                     },
                     new StageDef
                     {
-                        Title = "Silver Sam", Arena = "Ghost Town", Difficulty = Difficulty.Hard,
-                        Look = new CowboyLook { Shirt = new Color(0.70f, 0.72f, 0.76f), HatColor = new Color(0.28f, 0.26f, 0.24f), Accent = new Color(0.88f, 0.88f, 0.92f), HatType = HatStyle.Wide, Chest = Accessory.Vest, Facial = FacialHair.Mustache },
+                        Title = "The Cabaret Singer", Arena = "Ghost Town", Difficulty = Difficulty.Hard,
+                        Look = new CowboyLook
+                        {
+                            Shirt = new Color(0.62f, 0.12f, 0.16f),
+                            Accent = new Color(0.90f, 0.72f, 0.28f),
+                            CharacterId = "cabaret_singer",
+                        },
                         Intro = new[]
                         {
-                            new DialogLine(Speaker.Opponent, "Two silver pistols. One for each eye."),
-                            new DialogLine(Speaker.You,      "Fancy guns for a dead man."),
-                            new DialogLine(Speaker.Opponent, "We'll see who's polishin' a headstone."),
+                            new DialogLine(Speaker.Opponent, "Last show in this town. You're the encore."),
+                            new DialogLine(Speaker.You,      "I don't clap."),
+                            new DialogLine(Speaker.Opponent, "Then you'll take a bow."),
                         },
                     },
                     new StageDef
                     {
                         Title = "The Kid", Arena = "Midnight Mesa", Difficulty = Difficulty.Hard,
-                        Look = new CowboyLook { Shirt = new Color(0.80f, 0.70f, 0.50f), HatColor = new Color(0.35f, 0.26f, 0.16f), Accent = new Color(0.30f, 0.55f, 0.85f), HatType = HatStyle.Cowboy, Chest = Accessory.Bandana },
+                        Look = new CowboyLook
+                        {
+                            Shirt = new Color(0.28f, 0.14f, 0.14f),
+                            Accent = new Color(0.82f, 0.62f, 0.28f),
+                            CharacterId = "lady_1",
+                        },
                         Intro = new[]
                         {
                             new DialogLine(Speaker.Opponent, "Fastest hand west of the river. That's me."),

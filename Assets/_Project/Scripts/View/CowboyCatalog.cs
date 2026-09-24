@@ -118,6 +118,54 @@ namespace HighNoon
             FeetInset = 0f,
         };
 
+        /// <summary>Lady gunslinger — 8-frame strips (walk / idle / shoot / death).</summary>
+        public static readonly CowboyCharacter Lady1 = new CowboyCharacter
+        {
+            Id = "lady_1", Title = "LADY", FacesRight = true, Height = 3.2f,
+            Atlas      = "Art/Cowboys/sheets/lady_1/walk",
+            IdleAtlas  = "Art/Cowboys/sheets/lady_1/idle",
+            ShootAtlas = "Art/Cowboys/sheets/lady_1/shoot",
+            DeathAtlas = "Art/Cowboys/sheets/lady_1/death",
+            SheetCols = 8, SheetRows = 1,
+            FeetInset = 0f,
+        };
+
+        /// <summary>Cabaret singer — 8-frame strips (walk / idle / shoot / death).</summary>
+        public static readonly CowboyCharacter CabaretSinger = new CowboyCharacter
+        {
+            Id = "cabaret_singer", Title = "CABARET SINGER", FacesRight = true, Height = 3.2f,
+            Atlas      = "Art/Cowboys/sheets/cabaret_singer/walk",
+            IdleAtlas  = "Art/Cowboys/sheets/cabaret_singer/idle",
+            ShootAtlas = "Art/Cowboys/sheets/cabaret_singer/shoot",
+            DeathAtlas = "Art/Cowboys/sheets/cabaret_singer/death",
+            SheetCols = 8, SheetRows = 1,
+            FeetInset = 0f,
+        };
+
+        /// <summary>Second cabaret singer — 8-frame strips (walk / idle / shoot / death).</summary>
+        public static readonly CowboyCharacter CabaretSinger2 = new CowboyCharacter
+        {
+            Id = "cabaret_singer_2", Title = "CABARET SINGER 2", FacesRight = true, Height = 3.2f,
+            Atlas      = "Art/Cowboys/sheets/cabaret_singer_2/walk",
+            IdleAtlas  = "Art/Cowboys/sheets/cabaret_singer_2/idle",
+            ShootAtlas = "Art/Cowboys/sheets/cabaret_singer_2/shoot",
+            DeathAtlas = "Art/Cowboys/sheets/cabaret_singer_2/death",
+            SheetCols = 8, SheetRows = 1,
+            FeetInset = 0f,
+        };
+
+        /// <summary>Third cabaret singer — 8-frame strips (walk / idle / shoot / death).</summary>
+        public static readonly CowboyCharacter CabaretSinger3 = new CowboyCharacter
+        {
+            Id = "cabaret_singer_3", Title = "CABARET SINGER 3", FacesRight = true, Height = 3.2f,
+            Atlas      = "Art/Cowboys/sheets/cabaret_singer_3/walk",
+            IdleAtlas  = "Art/Cowboys/sheets/cabaret_singer_3/idle",
+            ShootAtlas = "Art/Cowboys/sheets/cabaret_singer_3/shoot",
+            DeathAtlas = "Art/Cowboys/sheets/cabaret_singer_3/death",
+            SheetCols = 8, SheetRows = 1,
+            FeetInset = 0f,
+        };
+
         /// <summary>Cut-out skeletal cowboy (eight part PNGs; weapon mounts in the hand) — the code-built bone rig.</summary>
         public static readonly CowboyCharacter HeroRig = new CowboyCharacter
         {
@@ -125,10 +173,10 @@ namespace HighNoon
             RigBase = "Art/Cowboys/hero_rig",
         };
 
-        static readonly CowboyCharacter[] All = { Gunslinger, SaloonSinger, NativeArcher, HeroRig, Hero, DustyHart, RioVela, BlackCalhoun, DocGraves };
+        static readonly CowboyCharacter[] All = { Gunslinger, SaloonSinger, NativeArcher, Lady1, CabaretSinger, CabaretSinger2, CabaretSinger3, HeroRig, Hero, DustyHart, RioVela, BlackCalhoun, DocGraves };
 
         /// <summary>Sheet characters the player can pick as their duelist.</summary>
-        public static readonly CowboyCharacter[] Playable = { Gunslinger, SaloonSinger, NativeArcher };
+        public static readonly CowboyCharacter[] Playable = { Gunslinger, SaloonSinger, NativeArcher, Lady1, CabaretSinger, CabaretSinger2, CabaretSinger3 };
 
         /// <summary>Currently selected playable character (falls back to the gunslinger).</summary>
         public static CowboyCharacter Selected

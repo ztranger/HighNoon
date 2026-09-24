@@ -1,0 +1,66 @@
+[
+  {
+    "File": "CabaretSinger2_Death.png",
+    "Width": 1536,
+    "Height": 192,
+    "NonBinaryAlphaPixels": 0,
+    "BottomRows": [
+      175,
+      175,
+      175,
+      175,
+      175,
+      175,
+      175,
+      175
+    ]
+  },
+  {
+    "File": "CabaretSinger2_Idle.png",
+    "Width": 1536,
+    "Height": 192,
+    "NonBinaryAlphaPixels": 0,
+    "BottomRows": [
+      175,
+      175,
+      175,
+      175,
+      175,
+      175,
+      175,
+      175
+    ]
+  },
+  {
+    "File": "CabaretSinger2_Shoot.png",
+    "Width": 1536,
+    "Height": 192,
+    "NonBinaryAlphaPixels": 0,
+    "BottomRows": [
+      175,
+      175,
+      175,
+      175,
+      175,
+      175,
+      175,
+      175
+    ]
+  },
+  {
+    "File": "CabaretSinger2_Walk.png",
+    "Width": 1536,
+    "Height": 192,
+    "NonBinaryAlphaPixels": 0,
+    "BottomRows": [
+      175,
+      175,
+      175,
+      175,
+      175,
+      175,
+      175,
+      175
+    ]
+  }
+]
