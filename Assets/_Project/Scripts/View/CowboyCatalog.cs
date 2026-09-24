@@ -10,6 +10,7 @@ namespace HighNoon
     public class CowboyCharacter
     {
         public string Id;
+        public string Title;                         // menu label, e.g. "GUNSLINGER"
         public string ResourcePath;                 // static single-pose PNG under Resources/, no extension
         public bool FacesRight;                      // direction the source art / sheet points
         public float Height = 3.0f;                  // static: figure world height. sheet: cell world height (feet→top of cell)
@@ -83,7 +84,7 @@ namespace HighNoon
         /// <summary>Side-view gunslinger — one atlas per clip (walk / idle / shoot / death), all 4×2.</summary>
         public static readonly CowboyCharacter Gunslinger = new CowboyCharacter
         {
-            Id = "gunslinger", FacesRight = true, Height = 3.6f,
+            Id = "gunslinger", Title = "GUNSLINGER", FacesRight = true, Height = 3.6f,
             Atlas      = "Art/Cowboys/sheets/gunslinger/walk",
             IdleAtlas  = "Art/Cowboys/sheets/gunslinger/idle",
             ShootAtlas = "Art/Cowboys/sheets/gunslinger/shoot",
@@ -96,7 +97,7 @@ namespace HighNoon
         /// <summary>Saloon singer — 8-frame strips (walk / idle / shoot / death).</summary>
         public static readonly CowboyCharacter SaloonSinger = new CowboyCharacter
         {
-            Id = "saloon_singer", FacesRight = true, Height = 3.2f,
+            Id = "saloon_singer", Title = "SALOON SINGER", FacesRight = true, Height = 3.2f,
             Atlas      = "Art/Cowboys/sheets/saloon_singer/walk",
             IdleAtlas  = "Art/Cowboys/sheets/saloon_singer/idle",
             ShootAtlas = "Art/Cowboys/sheets/saloon_singer/shoot",
@@ -108,7 +109,7 @@ namespace HighNoon
         /// <summary>Native archer — 8-frame strips (walk / idle / shoot / death).</summary>
         public static readonly CowboyCharacter NativeArcher = new CowboyCharacter
         {
-            Id = "native_archer", FacesRight = true, Height = 3.2f,
+            Id = "native_archer", Title = "NATIVE ARCHER", FacesRight = true, Height = 3.2f,
             Atlas      = "Art/Cowboys/sheets/native_archer/walk",
             IdleAtlas  = "Art/Cowboys/sheets/native_archer/idle",
             ShootAtlas = "Art/Cowboys/sheets/native_archer/shoot",
@@ -125,6 +126,46 @@ namespace HighNoon
         };
 
         static readonly CowboyCharacter[] All = { Gunslinger, SaloonSinger, NativeArcher, HeroRig, Hero, DustyHart, RioVela, BlackCalhoun, DocGraves };
+
+        /// <summary>Sheet characters the player can pick as their duelist.</summary>
+        public static readonly CowboyCharacter[] Playable = { Gunslinger, SaloonSinger, NativeArcher };
+
+        /// <summary>Currently selected playable character (falls back to the gunslinger).</summary>
+        public static CowboyCharacter Selected
+        {
+            get
+            {
+                var c = Get(GameSettings.SelectedCharacter);
+                if (c != null && !string.IsNullOrEmpty(c.Atlas)) return c;
+                return Gunslinger;
+            }
+        }
+
+        public static void CyclePlayable(int dir)
+        {
+            var a = Playable;
+            if (a == null || a.Length == 0) return;
+            int i = 0;
+            for (int n = 0; n < a.Length; n++)
+                if (a[n].Id == GameSettings.SelectedCharacter) { i = n; break; }
+            int nAll = a.Length;
+            GameSettings.SelectedCharacter = a[((i + dir) % nAll + nAll) % nAll].Id;
+        }
+
+        /// <summary>Idle frames for menus / map token — sheet if the character has one.</summary>
+        public static Sprite[] PreviewIdle(CowboyCharacter c)
+        {
+            var sheet = CowboySheet.Load(c);
+            if (sheet != null && sheet.Idle != null && sheet.Idle.Length > 0) return sheet.Idle;
+            return CowboyArt.Build(new CowboyLook { CharacterId = c != null ? c.Id : null }).Idle;
+        }
+
+        public static Sprite PreviewPortrait(CowboyLook look)
+        {
+            var c = look != null ? Get(look.CharacterId) : null;
+            var idle = PreviewIdle(c ?? Selected);
+            return idle[0];
+        }
 
         /// <summary>All characters, for preview/debug tools (e.g. the animation test scene).</summary>
         public static CowboyCharacter[] Roster => All;

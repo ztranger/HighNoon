@@ -14,6 +14,7 @@ namespace HighNoon
         const string KVolume = "hn_volume";
         const string KTutorial = "hn_tutorial_done";
         const string KWeapon = "hn_weapon";
+        const string KCharacter = "hn_character";
 
         static bool _loaded;
         static bool _sfx = true;
@@ -22,6 +23,7 @@ namespace HighNoon
         static float _volume = 1f;
         static bool _tutorial;
         static int _weapon;
+        static string _character = "gunslinger";
 
         static void Load()
         {
@@ -33,6 +35,7 @@ namespace HighNoon
             _volume = PlayerPrefs.GetFloat(KVolume, 1f);
             _tutorial = PlayerPrefs.GetInt(KTutorial, 0) == 1;
             _weapon = PlayerPrefs.GetInt(KWeapon, 0);
+            _character = PlayerPrefs.GetString(KCharacter, "gunslinger");
         }
 
         /// <summary>Index into <see cref="Weapons.All"/> of the player's chosen weapon.</summary>
@@ -40,6 +43,19 @@ namespace HighNoon
         {
             get { Load(); return _weapon; }
             set { Load(); _weapon = value; PlayerPrefs.SetInt(KWeapon, value); SaveData.Save(); }
+        }
+
+        /// <summary><see cref="CowboyCharacter.Id"/> of the player's chosen sheet character.</summary>
+        public static string SelectedCharacter
+        {
+            get { Load(); return string.IsNullOrEmpty(_character) ? "gunslinger" : _character; }
+            set
+            {
+                Load();
+                _character = string.IsNullOrEmpty(value) ? "gunslinger" : value;
+                PlayerPrefs.SetString(KCharacter, _character);
+                SaveData.Save();
+            }
         }
 
         /// <summary>

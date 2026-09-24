@@ -4,10 +4,14 @@ using UnityEngine.UI;
 
 namespace HighNoon
 {
-    /// <summary>Landscape hub: idle cowboy, PvP / PvE, corners to the other menu screens.</summary>
+    /// <summary>Landscape hub: idle cowboy, character picker, PvP / PvE, corners to the other menu screens.</summary>
     public sealed class HomeScreen
     {
         public RectTransform Root { get; private set; }
+
+        Image _heroImg;
+        UiSpriteAnim _heroAnim;
+        Text _charName;
 
         public void Build(RectTransform root, UiBuild ui, Action<MenuScreenId> go)
         {
@@ -27,12 +31,16 @@ namespace HighNoon
             hrt.anchorMin = hrt.anchorMax = new Vector2(0.22f, 0.42f);
             hrt.pivot = new Vector2(0.5f, 0.5f);
             hrt.sizeDelta = new Vector2(340f, 460f);
-            var heroImg = heroGo.AddComponent<Image>();
-            heroImg.raycastTarget = false;
-            heroImg.preserveAspect = true;
-            var frames = CowboyArt.Build(CowboyLook.Player());
-            heroImg.sprite = frames.Idle[0];
-            heroGo.AddComponent<UiSpriteAnim>().Play(heroImg, frames.Idle, 2.5f);
+            _heroImg = heroGo.AddComponent<Image>();
+            _heroImg.raycastTarget = false;
+            _heroImg.preserveAspect = true;
+            _heroAnim = heroGo.AddComponent<UiSpriteAnim>();
+
+            _charName = ui.Text(root, "CharName", "GUNSLINGER", 28, new Vector2(0.22f, 0.14f), Vector2.zero, 420, 44, UiBuild.Gold, FontStyle.Bold);
+            var prev = ui.Button(root, "CharPrev", "<", new Vector2(0.22f, 0.14f), new Vector2(-200f, 0f), 80, 80, 44, UiBuild.Normal, out _);
+            var next = ui.Button(root, "CharNext", ">", new Vector2(0.22f, 0.14f), new Vector2(200f, 0f), 80, 80, 44, UiBuild.Normal, out _);
+            prev.onClick.AddListener(() => Cycle(-1));
+            next.onClick.AddListener(() => Cycle(1));
 
             var pvp = ui.Button(root, "HomePvP", "PvP  DUEL", new Vector2(0.70f, 0.46f), Vector2.zero, 560, 120, 52, UiBuild.Gold, out _);
             pvp.onClick.AddListener(() => { MatchSettings.Mode = GameMode.PvP; DuelFlow.Duel(); });
@@ -44,6 +52,27 @@ namespace HighNoon
                 if (Campaign.HasSavedRun) DuelFlow.Map();
                 else { Campaign.StartRun(); DuelFlow.Story(StoryKind.ChapterIntro); }
             });
+
+            Refresh();
+        }
+
+        public void Refresh()
+        {
+            var c = CowboyCatalog.Selected;
+            var idle = CowboyCatalog.PreviewIdle(c);
+            if (_heroImg != null && idle != null && idle.Length > 0)
+            {
+                _heroImg.sprite = idle[0];
+                if (_heroAnim != null) _heroAnim.Play(_heroImg, idle, 7f);
+            }
+            if (_charName != null) _charName.text = string.IsNullOrEmpty(c.Title) ? c.Id : c.Title;
+        }
+
+        void Cycle(int dir)
+        {
+            CowboyCatalog.CyclePlayable(dir);
+            Refresh();
+            Sfx.Click();
         }
 
         static void Chip(UiBuild ui, RectTransform p, string name, string label, Vector2 anchor, Vector2 pos, Action go)

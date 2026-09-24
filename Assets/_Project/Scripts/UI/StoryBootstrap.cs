@@ -134,7 +134,7 @@ namespace HighNoon
         }
 
         void Cowboy(Vector2 pos, Vector2 size)
-            => Prop(CowboyArt.Build(CowboyLook.Player()).Idle[0], pos, size);
+            => Prop(CowboyCatalog.PreviewPortrait(CowboyLook.Player()), pos, size);
 
         void Prop(Sprite sprite, Vector2 pos, Vector2 size)
         {

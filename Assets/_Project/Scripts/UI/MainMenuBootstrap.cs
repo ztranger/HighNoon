@@ -60,7 +60,12 @@ namespace HighNoon
 
         void Show(MenuScreenId id)
         {
-            if (_home.Root != null) _home.Root.gameObject.SetActive(id == MenuScreenId.Home);
+            if (_home.Root != null)
+            {
+                bool on = id == MenuScreenId.Home;
+                _home.Root.gameObject.SetActive(on);
+                if (on) _home.Refresh();
+            }
             if (_stats.Root != null) _stats.Root.gameObject.SetActive(id == MenuScreenId.Stats);
             if (_guns.Root != null) _guns.Root.gameObject.SetActive(id == MenuScreenId.Guns);
             if (_setup.Root != null) _setup.Root.gameObject.SetActive(id == MenuScreenId.Setup);

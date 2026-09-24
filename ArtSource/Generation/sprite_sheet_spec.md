@@ -29,10 +29,10 @@
 - `AnimationName` — анимация, содержащаяся в спрайтшите: строго **`Idle`**, **`Walk`**, **`Shoot`** или **`Death`**, с указанным регистром.
 - Имя персонажа и название анимации разделяются одним символом подчёркивания `_`; суффикс `_sheet` не добавляется.
 
-Для каждого персонажа создать отдельную папку **`CharacterName`** и поместить все четыре PNG непосредственно в неё. `CharacterName` — подставляемое имя, а не буквальное название папки. Например, для персонажа `Cowboy`:
+Для каждого персонажа создать отдельную папку **`ArtSource/Characters/CharacterName`** относительно корня проекта HighNoon и поместить все четыре PNG непосредственно в неё. В текущем проекте полный путь: **`G:/Projects/HighNoon/ArtSource/Characters/CharacterName`**. `CharacterName` — подставляемое имя, а не буквальное название папки. Например, для персонажа `Cowboy`:
 
 ```text
-Cowboy/
+ArtSource/Characters/Cowboy/
     Cowboy_Idle.png
     Cowboy_Walk.png
     Cowboy_Shoot.png
@@ -130,7 +130,7 @@ PNG не содержит длительности кадров. Для перв
 
 ## 6. Проверка результата
 
-- [ ] Все четыре файла находятся в папке `CharacterName` и названы `CharacterName_Idle.png`, `CharacterName_Walk.png`, `CharacterName_Shoot.png`, `CharacterName_Death.png`; имя персонажа задано на английском языке и совпадает с названием папки.
+- [ ] Все четыре файла находятся в папке `ArtSource/Characters/CharacterName` относительно корня проекта и названы `CharacterName_Idle.png`, `CharacterName_Walk.png`, `CharacterName_Shoot.png`, `CharacterName_Death.png`; имя персонажа задано на английском языке и совпадает с названием папки.
 - [ ] Созданы четыре отдельных PNG: idle, ходьба, выстрел и смерть одного персонажа.
 - [ ] Во всех 32 кадрах персонаж ориентирован вправо; при выстреле оружие направлено вправо.
 - [ ] Каждый спрайтшит имеет размер 768 × 96 px и содержит ровно 8 кадров в одной строке.
@@ -151,7 +151,8 @@ PNG не содержит длительности кадров. Для перв
 idle (ожидание), ходьба, выстрел и смерть — по спецификации
 G:/Projects/HighNoon/ArtSource/Generation/sprite_sheet_spec.md.
 Каждый PNG: 768 × 96 px, 8 кадров по 96 × 96 px в одной строке.
-Создай папку с английским именем персонажа CharacterName и сохрани в неё
+В каталоге ArtSource/Characters относительно корня проекта создай папку
+с английским именем персонажа CharacterName и сохрани в неё
 CharacterName_Idle.png, CharacterName_Walk.png, CharacterName_Shoot.png
 и CharacterName_Death.png, подставив реальное имя персонажа.
 Персонаж всегда ориентирован вправо во всех кадрах всех анимаций.

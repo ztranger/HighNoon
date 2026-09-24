@@ -40,16 +40,26 @@ namespace HighNoon
             Shirt = new Color(0.82f, 0.62f, 0.36f),
             Accent = new Color(0.80f, 0.20f, 0.18f),
             Chest = Accessory.Bandana,
-            CharacterId = "gunslinger", // sprite-sheet walk; falls back to rig/static/procedural if art is missing
+            CharacterId = CowboyCatalog.Selected.Id,
         };
 
-        public static CowboyLook Player2() => new CowboyLook
+        public static CowboyLook Player2()
         {
-            Shirt = new Color(0.72f, 0.18f, 0.22f),
-            Accent = new Color(0.90f, 0.72f, 0.28f),
-            Chest = Accessory.None,
-            CharacterId = "saloon_singer",
-        };
+            var a = CowboyCatalog.Playable;
+            string p1 = CowboyCatalog.Selected.Id;
+            string p2 = p1;
+            if (a != null && a.Length > 1)
+            {
+                for (int i = 0; i < a.Length; i++)
+                    if (a[i].Id == p1) { p2 = a[(i + 1) % a.Length].Id; break; }
+            }
+            return new CowboyLook
+            {
+                Shirt = new Color(0.72f, 0.18f, 0.22f),
+                Accent = new Color(0.90f, 0.72f, 0.28f),
+                CharacterId = p2,
+            };
+        }
 
         public static CowboyLook Enemy() => new CowboyLook
         {
