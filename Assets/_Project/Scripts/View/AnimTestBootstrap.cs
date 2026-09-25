@@ -20,6 +20,8 @@ namespace HighNoon
         List<CowboyCharacter> _roster;
         int _charIndex, _weaponIndex;
         bool _rightSide;
+        bool _matchSize = true;
+        const float PreviewHeight = 3.2f;
 
         Canvas _canvas;
         Font _font;
@@ -32,6 +34,7 @@ namespace HighNoon
             _font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             _roster = BuildRoster();
             SetupCamera();
+            DrawStreet();
             SetupEventSystem();
             BuildUI();
             Spawn();
@@ -80,6 +83,17 @@ namespace HighNoon
             AppInit.EnsureAudioListener(cam);
         }
 
+        void DrawStreet()
+        {
+            var go = new GameObject("Street");
+            var sr = go.AddComponent<SpriteRenderer>();
+            sr.sprite = Sprite.Create(Texture2D.whiteTexture, new Rect(0, 0, 4, 4), new Vector2(0.5f, 0.5f), 4f);
+            sr.color = new Color(0.98f, 0.86f, 0.55f, 0.45f);
+            sr.sortingOrder = 1;
+            go.transform.position = new Vector3(0f, DuelistView.StreetY, 0f);
+            go.transform.localScale = new Vector3(22f, 0.045f, 1f);
+        }
+
         void SetupEventSystem()
         {
             if (FindFirstObjectByType<EventSystem>() != null) return;
@@ -100,6 +114,7 @@ namespace HighNoon
             _view = _cowboy.AddComponent<DuelistView>();
             _view.SetupCharacter(sr, c, _rightSide);
             _view.SetWeapon(Weapons.Get(_weaponIndex));
+            if (_matchSize) _view.FitFigure(PreviewHeight);
             _view.Stance();
             UpdateLabels();
         }
@@ -109,7 +124,8 @@ namespace HighNoon
             var c = _roster[_charIndex];
             if (_charLabel) _charLabel.text = $"CHARACTER:  {c.Id}";
             if (_weaponLabel) _weaponLabel.text = $"WEAPON:  {Weapons.Get(_weaponIndex).Name}";
-            if (_modeLabel) _modeLabel.text = _rightSide ? "FACING: LEFT (mirrored)" : "FACING: RIGHT";
+            if (_modeLabel) _modeLabel.text = (_rightSide ? "FACING: LEFT (mirrored)" : "FACING: RIGHT")
+                + (_matchSize ? "  ·  SIZE: MATCH" : "  ·  SIZE: RAW");
         }
 
         void CycleChar(int d)
@@ -128,6 +144,8 @@ namespace HighNoon
         }
 
         void Flip() { _rightSide = !_rightSide; Spawn(); }
+
+        void ToggleMatch() { _matchSize = !_matchSize; Spawn(); }
 
         // ---------- UI ----------
 
@@ -162,6 +180,7 @@ namespace HighNoon
                 ("DEATH",   () => { if (_view) _view.PlayDeath(); }),
                 ("RESET",   () => Spawn()),
                 ("FLIP",    () => Flip()),
+                ("SIZE",    () => ToggleMatch()),
             };
             const float bw = 210f, gap = 16f, h = 72f;
             float total = actions.Length * bw + (actions.Length - 1) * gap;

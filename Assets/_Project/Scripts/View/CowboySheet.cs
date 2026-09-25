@@ -61,6 +61,60 @@ namespace HighNoon
     public static class CowboySheet
     {
         static readonly Dictionary<string, CowboyFrames> Cache = new Dictionary<string, CowboyFrames>();
+        static readonly Dictionary<int, Color32[]> PixelCache = new Dictionary<int, Color32[]>();
+
+        /// <summary>Opaque pixel rect of a sprite, in texture space (same origin as <see cref="Sprite.rect"/>).</summary>
+        public static bool TryOpaqueBounds(Sprite sprite, out Rect bounds)
+        {
+            bounds = default;
+            if (sprite == null || sprite.texture == null) return false;
+            var tex = sprite.texture;
+            var r = sprite.rect;
+            int x0 = Mathf.Clamp(Mathf.FloorToInt(r.x), 0, tex.width - 1);
+            int y0 = Mathf.Clamp(Mathf.FloorToInt(r.y), 0, tex.height - 1);
+            int w = Mathf.Clamp(Mathf.FloorToInt(r.width), 1, tex.width - x0);
+            int h = Mathf.Clamp(Mathf.FloorToInt(r.height), 1, tex.height - y0);
+            var px = PixelsOf(tex);
+            if (px == null || px.Length < tex.width * tex.height) return false;
+
+            int minX = int.MaxValue, minY = int.MaxValue, maxX = 0, maxY = 0;
+            int tw = tex.width;
+            for (int y = 0; y < h; y++)
+            {
+                int row = (y0 + y) * tw + x0;
+                for (int x = 0; x < w; x++)
+                {
+                    if (px[row + x].a < 16) continue;
+                    if (x < minX) minX = x;
+                    if (y < minY) minY = y;
+                    if (x > maxX) maxX = x;
+                    if (y > maxY) maxY = y;
+                }
+            }
+            if (minX == int.MaxValue) return false;
+            bounds = new Rect(x0 + minX, y0 + minY, maxX - minX + 1, maxY - minY + 1);
+            return true;
+        }
+
+        static Color32[] PixelsOf(Texture2D src)
+        {
+            int id = src.GetInstanceID();
+            if (PixelCache.TryGetValue(id, out var cached)) return cached;
+            int w = src.width, h = src.height;
+            var rt = RenderTexture.GetTemporary(w, h, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
+            var prev = RenderTexture.active;
+            Graphics.Blit(src, rt);
+            RenderTexture.active = rt;
+            var tmp = new Texture2D(w, h, TextureFormat.RGBA32, false) { hideFlags = HideFlags.HideAndDontSave };
+            tmp.ReadPixels(new Rect(0, 0, w, h), 0, 0);
+            tmp.Apply(false, false);
+            cached = tmp.GetPixels32();
+            UnityEngine.Object.DestroyImmediate(tmp);
+            RenderTexture.active = prev;
+            RenderTexture.ReleaseTemporary(rt);
+            PixelCache[id] = cached;
+            return cached;
+        }
 
         /// <summary>Uniform grid over an atlas texture (shared by the loader and the editor tool).</summary>
         public struct AtlasGrid
@@ -115,6 +169,7 @@ namespace HighNoon
         public static void Invalidate(string id)
         {
             if (!string.IsNullOrEmpty(id)) Cache.Remove(id);
+            PixelCache.Clear();
         }
 
         public struct AtlasClip

@@ -101,12 +101,17 @@ namespace HighNoon
                 {
                     new StageDef
                     {
-                        Title = "The Bounty Hunter", Arena = "Painted Hills", Difficulty = Difficulty.Normal,
-                        Look = new CowboyLook { Shirt = new Color(0.42f, 0.45f, 0.30f), HatColor = new Color(0.26f, 0.20f, 0.13f), Accent = new Color(0.82f, 0.62f, 0.25f), HatType = HatStyle.Wide, Chest = Accessory.Vest, Facial = FacialHair.Mustache },
+                        Title = "The Diva", Arena = "Painted Hills", Difficulty = Difficulty.Normal,
+                        Look = new CowboyLook
+                        {
+                            Shirt = new Color(0.62f, 0.12f, 0.16f),
+                            Accent = new Color(0.90f, 0.72f, 0.28f),
+                            CharacterId = "cabaret_singer_4",
+                        },
                         Intro = new[]
                         {
-                            new DialogLine(Speaker.Opponent, "Wanted, dead or alive. Dead pays the same."),
-                            new DialogLine(Speaker.You,      "You'll have to earn it."),
+                            new DialogLine(Speaker.Opponent, "This town already has a star. You ain't it."),
+                            new DialogLine(Speaker.You,      "Then take a bow."),
                         },
                     },
                     new StageDef
@@ -151,12 +156,18 @@ namespace HighNoon
                 {
                     new StageDef
                     {
-                        Title = "El Lobo", Arena = "Red Canyon", Difficulty = Difficulty.Normal,
-                        Look = new CowboyLook { Shirt = new Color(0.62f, 0.20f, 0.18f), HatColor = new Color(0.10f, 0.10f, 0.10f), Accent = new Color(0.85f, 0.70f, 0.30f), HatType = HatStyle.Sombrero, Chest = Accessory.Poncho, Facial = FacialHair.Beard },
+                        Title = "The Chanteuse", Arena = "Red Canyon", Difficulty = Difficulty.Normal,
+                        Look = new CowboyLook
+                        {
+                            Shirt = new Color(0.55f, 0.10f, 0.14f),
+                            Accent = new Color(0.90f, 0.70f, 0.28f),
+                            CharacterId = "cabaret_singer_5",
+                        },
                         Intro = new[]
                         {
-                            new DialogLine(Speaker.Opponent, "The wolf hunts alone, gringo."),
-                            new DialogLine(Speaker.You,      "Then no one'll hear you fall."),
+                            new DialogLine(Speaker.Opponent, "This canyon keeps every encore. Even the last."),
+                            new DialogLine(Speaker.You,      "Then I won't sing."),
+                            new DialogLine(Speaker.Opponent, "Draw. The rocks will do the chorus."),
                         },
                     },
                     new StageDef
@@ -201,23 +212,34 @@ namespace HighNoon
                 {
                     new StageDef
                     {
-                        Title = "The Undertaker", Arena = "Boot Hill", Difficulty = Difficulty.Hard,
-                        Look = new CowboyLook { Shirt = new Color(0.16f, 0.15f, 0.17f), HatColor = new Color(0.10f, 0.10f, 0.11f), Skin = new Color(0.80f, 0.75f, 0.68f), Accent = new Color(0.50f, 0.12f, 0.12f), HatType = HatStyle.Bowler, Facial = FacialHair.Beard },
+                        Title = "The Dancer", Arena = "Boot Hill", Difficulty = Difficulty.Hard,
+                        Look = new CowboyLook
+                        {
+                            Shirt = new Color(0.16f, 0.22f, 0.55f),
+                            Accent = new Color(0.90f, 0.72f, 0.28f),
+                            CharacterId = "cabaret_dancer_6",
+                        },
                         Intro = new[]
                         {
-                            new DialogLine(Speaker.Opponent, "I already dug your grave."),
-                            new DialogLine(Speaker.You,      "Then you wasted a good mornin'."),
+                            new DialogLine(Speaker.Opponent, "Last waltz on Boot Hill. You're my partner."),
+                            new DialogLine(Speaker.You,      "I don't dance."),
+                            new DialogLine(Speaker.Opponent, "Then fall in time."),
                         },
                     },
                     new StageDef
                     {
-                        Title = "The Sheriff", Arena = "Salt Flats", Difficulty = Difficulty.Hard,
-                        Look = new CowboyLook { Shirt = new Color(0.40f, 0.45f, 0.60f), HatColor = new Color(0.30f, 0.22f, 0.14f), Accent = new Color(0.95f, 0.80f, 0.30f), HatType = HatStyle.Wide, Chest = Accessory.Badge, Facial = FacialHair.Mustache },
+                        Title = "The Chorus Girl", Arena = "Salt Flats", Difficulty = Difficulty.Hard,
+                        Look = new CowboyLook
+                        {
+                            Shirt = new Color(0.22f, 0.32f, 0.72f),
+                            Accent = new Color(0.70f, 0.82f, 0.95f),
+                            CharacterId = "cabaret_dancer_7",
+                        },
                         Intro = new[]
                         {
-                            new DialogLine(Speaker.Opponent, "End of the line. I'm the law out here."),
-                            new DialogLine(Speaker.You,      "The law never scared me."),
-                            new DialogLine(Speaker.Opponent, "It'll be the last thing you feel."),
+                            new DialogLine(Speaker.Opponent, "Salt and spotlight. Same glare."),
+                            new DialogLine(Speaker.You,      "I didn't come for a show."),
+                            new DialogLine(Speaker.Opponent, "Too late. You're on."),
                         },
                     },
                 },

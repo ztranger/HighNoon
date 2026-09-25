@@ -166,6 +166,54 @@ namespace HighNoon
             FeetInset = 0f,
         };
 
+        /// <summary>Fourth cabaret singer — 4×2 sheets (walk / idle / shoot / death).</summary>
+        public static readonly CowboyCharacter CabaretSinger4 = new CowboyCharacter
+        {
+            Id = "cabaret_singer_4", Title = "CABARET SINGER 4", FacesRight = true, Height = 3.2f,
+            Atlas      = "Art/Cowboys/sheets/cabaret_singer_4/walk",
+            IdleAtlas  = "Art/Cowboys/sheets/cabaret_singer_4/idle",
+            ShootAtlas = "Art/Cowboys/sheets/cabaret_singer_4/shoot",
+            DeathAtlas = "Art/Cowboys/sheets/cabaret_singer_4/death",
+            SheetCols = 4, SheetRows = 2,
+            FeetInset = 0f,
+        };
+
+        /// <summary>Fifth cabaret singer — 4×2 sheets (walk / idle / shoot / death).</summary>
+        public static readonly CowboyCharacter CabaretSinger5 = new CowboyCharacter
+        {
+            Id = "cabaret_singer_5", Title = "CABARET SINGER 5", FacesRight = true, Height = 3.2f,
+            Atlas      = "Art/Cowboys/sheets/cabaret_singer_5/walk",
+            IdleAtlas  = "Art/Cowboys/sheets/cabaret_singer_5/idle",
+            ShootAtlas = "Art/Cowboys/sheets/cabaret_singer_5/shoot",
+            DeathAtlas = "Art/Cowboys/sheets/cabaret_singer_5/death",
+            SheetCols = 4, SheetRows = 2,
+            FeetInset = 0f,
+        };
+
+        /// <summary>Cabaret dancer — 4×2 sheets (walk / idle / shoot / death).</summary>
+        public static readonly CowboyCharacter CabaretDancer6 = new CowboyCharacter
+        {
+            Id = "cabaret_dancer_6", Title = "CABARET DANCER", FacesRight = true, Height = 3.2f,
+            Atlas      = "Art/Cowboys/sheets/cabaret_dancer_6/walk",
+            IdleAtlas  = "Art/Cowboys/sheets/cabaret_dancer_6/idle",
+            ShootAtlas = "Art/Cowboys/sheets/cabaret_dancer_6/shoot",
+            DeathAtlas = "Art/Cowboys/sheets/cabaret_dancer_6/death",
+            SheetCols = 4, SheetRows = 2,
+            FeetInset = 0f,
+        };
+
+        /// <summary>Second cabaret dancer — 4×2 sheets (walk / idle / shoot / death).</summary>
+        public static readonly CowboyCharacter CabaretDancer7 = new CowboyCharacter
+        {
+            Id = "cabaret_dancer_7", Title = "CABARET DANCER 2", FacesRight = true, Height = 3.2f,
+            Atlas      = "Art/Cowboys/sheets/cabaret_dancer_7/walk",
+            IdleAtlas  = "Art/Cowboys/sheets/cabaret_dancer_7/idle",
+            ShootAtlas = "Art/Cowboys/sheets/cabaret_dancer_7/shoot",
+            DeathAtlas = "Art/Cowboys/sheets/cabaret_dancer_7/death",
+            SheetCols = 4, SheetRows = 2,
+            FeetInset = 0f,
+        };
+
         /// <summary>Cut-out skeletal cowboy (eight part PNGs; weapon mounts in the hand) — the code-built bone rig.</summary>
         public static readonly CowboyCharacter HeroRig = new CowboyCharacter
         {
@@ -173,10 +221,10 @@ namespace HighNoon
             RigBase = "Art/Cowboys/hero_rig",
         };
 
-        static readonly CowboyCharacter[] All = { Gunslinger, SaloonSinger, NativeArcher, Lady1, CabaretSinger, CabaretSinger2, CabaretSinger3, HeroRig, Hero, DustyHart, RioVela, BlackCalhoun, DocGraves };
+        static readonly CowboyCharacter[] All = { Gunslinger, SaloonSinger, NativeArcher, Lady1, CabaretSinger, CabaretSinger2, CabaretSinger3, CabaretSinger4, CabaretSinger5, CabaretDancer6, CabaretDancer7, HeroRig, Hero, DustyHart, RioVela, BlackCalhoun, DocGraves };
 
         /// <summary>Sheet characters the player can pick as their duelist.</summary>
-        public static readonly CowboyCharacter[] Playable = { Gunslinger, SaloonSinger, NativeArcher, Lady1, CabaretSinger, CabaretSinger2, CabaretSinger3 };
+        public static readonly CowboyCharacter[] Playable = { Gunslinger, SaloonSinger, NativeArcher, Lady1, CabaretSinger, CabaretSinger2, CabaretSinger3, CabaretSinger4, CabaretSinger5, CabaretDancer6, CabaretDancer7 };
 
         /// <summary>Currently selected playable character (falls back to the gunslinger).</summary>
         public static CowboyCharacter Selected

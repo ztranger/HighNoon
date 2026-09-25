@@ -17,7 +17,8 @@ namespace HighNoon
     /// </summary>
     public class DuelistView : MonoBehaviour
     {
-        const float GroundY = -1.35f; // street line where a real cowboy's feet sit
+        public const float StreetY = -1.35f; // street line where a real cowboy's feet sit
+        const float GroundY = StreetY;
         const float DepthToY = 0.30f; // 2v2 lane vertical stagger (from the pos.y the bootstrap passes)
 
         // Frame rates for frame-based modes (sheet / procedural).
@@ -129,6 +130,50 @@ namespace HighNoon
             _popupUp = 1.6f;
             _homePos = transform.position;
             _offscreenPos = _homePos + (rightSide ? Vector3.right : Vector3.left) * 9f;
+        }
+
+        /// <summary>
+        /// Scale so the standing figure (opaque idle pixels) is <paramref name="targetHeight"/>
+        /// world units, and plant the opaque feet on the street. Preview/test only — duel
+        /// keeps atlas PPU as authored.
+        /// </summary>
+        public void FitFigure(float targetHeight)
+        {
+            if (targetHeight < 0.01f) return;
+
+            if (_skeletal)
+            {
+                float rh = _char != null && _char.RigHeight > 0.01f ? _char.RigHeight : targetHeight;
+                float s = targetHeight / rh;
+                transform.localScale = new Vector3(s, s, 1f);
+                var p = transform.position;
+                transform.position = new Vector3(p.x, GroundY, 0f);
+                _homePos = transform.position;
+                _offscreenPos = _homePos + (_rightSide ? Vector3.right : Vector3.left) * 9f;
+                _popupUp = targetHeight * 0.95f;
+                return;
+            }
+
+            var sprite = _frames != null && _frames.Idle != null && _frames.Idle.Length > 0
+                ? _frames.Idle[0]
+                : _sr != null ? _sr.sprite : _staticSprite;
+            if (sprite == null || !CowboySheet.TryOpaqueBounds(sprite, out var opaque)) return;
+
+            float ppu = Mathf.Max(0.01f, sprite.pixelsPerUnit);
+            float figH = opaque.height / ppu;
+            if (figH < 0.01f) return;
+            float scale = targetHeight / figH;
+            transform.localScale = new Vector3(scale, scale, 1f);
+
+            // Sprite local Y is pixels from the pivot (cell bottom when FeetInset = 0).
+            float pivotY = sprite.pivot.y;
+            float opaqueBottomFromPivot = (opaque.yMin - sprite.rect.yMin) - pivotY;
+            float feetLocalY = opaqueBottomFromPivot / ppu * scale;
+            var pos = transform.position;
+            transform.position = new Vector3(pos.x, GroundY - feetLocalY, 0f);
+            _homePos = transform.position;
+            _offscreenPos = _homePos + (_rightSide ? Vector3.right : Vector3.left) * 9f;
+            _popupUp = targetHeight * 0.95f;
         }
 
         /// <summary>Feet on the street; normalization is baked into the sprite (PPU) so scale = 1.
