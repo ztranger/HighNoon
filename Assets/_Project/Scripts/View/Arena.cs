@@ -33,6 +33,13 @@ namespace HighNoon
         /// <summary>Seed used by <see cref="BackgroundBuilder"/>; falls back to a stable FNV of Name.</summary>
         public int RngSeed => Seed != 0 ? Seed : StableHash(Name);
 
+        /// <summary>
+        /// Optional painted backdrop under Resources (no extension), e.g. <c>Art/Locations/dusty_town</c>.
+        /// When set and the texture loads, <see cref="BackgroundBuilder"/> uses that sprite instead of
+        /// the procedural sky / ground / props.
+        /// </summary>
+        public string Background;
+
         /// <summary>FNV-1a 32-bit — same value on Mono and IL2CPP.</summary>
         public static int StableHash(string s)
         {
@@ -58,6 +65,7 @@ namespace HighNoon
             new ArenaDef
             {
                 Name = "Prairie", Seed = 1101, Style = ArenaStyle.Prairie,
+                Background = "Art/Locations/prairie",
                 GroundBase = new Color(0.82f, 0.70f, 0.42f),
                 GroundShade = new Color(0.72f, 0.60f, 0.34f),
                 Speck = new Color(0.60f, 0.50f, 0.30f),
@@ -69,6 +77,7 @@ namespace HighNoon
             new ArenaDef
             {
                 Name = "Dusty Town", Seed = 1102, Style = ArenaStyle.Town,
+                Background = "Art/Locations/dusty_town",
                 GroundBase = new Color(0.64f, 0.52f, 0.38f),
                 GroundShade = new Color(0.54f, 0.43f, 0.30f),
                 Speck = new Color(0.42f, 0.33f, 0.22f),
@@ -80,6 +89,7 @@ namespace HighNoon
             new ArenaDef
             {
                 Name = "Red Canyon", Seed = 1103, Style = ArenaStyle.Desert,
+                Background = "Art/Locations/red_canyon",
                 GroundBase = new Color(0.80f, 0.52f, 0.36f),
                 GroundShade = new Color(0.68f, 0.40f, 0.27f),
                 Speck = new Color(0.52f, 0.30f, 0.22f),
@@ -157,6 +167,7 @@ namespace HighNoon
             new ArenaDef
             {
                 Name = "Gallows Hill", Seed = 1110, Style = ArenaStyle.Graveyard,
+                Background = "Art/Locations/gallows_hill",
                 GroundBase = new Color(0.37f, 0.39f, 0.37f),
                 GroundShade = new Color(0.28f, 0.30f, 0.29f),
                 Speck = new Color(0.19f, 0.21f, 0.20f),
@@ -168,6 +179,7 @@ namespace HighNoon
             new ArenaDef
             {
                 Name = "Devil's Crossroads", Seed = 1111, Style = ArenaStyle.Desert,
+                Background = "Art/Locations/devils_crossroads",
                 GroundBase = new Color(0.44f, 0.23f, 0.20f),
                 GroundShade = new Color(0.31f, 0.15f, 0.14f),
                 Speck = new Color(0.21f, 0.10f, 0.10f),
@@ -175,6 +187,30 @@ namespace HighNoon
                 CameraFill = new Color(0.36f, 0.19f, 0.17f),
                 SkyTop = new Color(0.14f, 0.06f, 0.08f), SkyHorizon = new Color(0.62f, 0.18f, 0.13f),
                 Sun = new Color(0.95f, 0.48f, 0.26f), Hill = new Color(0.13f, 0.06f, 0.06f),
+            },
+            new ArenaDef
+            {
+                Name = "Night Cemetery", Seed = 1112, Style = ArenaStyle.Graveyard,
+                Background = "Art/Locations/night_cemetery",
+                GroundBase = new Color(0.42f, 0.32f, 0.24f),
+                GroundShade = new Color(0.30f, 0.22f, 0.18f),
+                Speck = new Color(0.22f, 0.18f, 0.16f),
+                Divider = new Color(0f, 0f, 0f, 0.22f),
+                CameraFill = new Color(0.36f, 0.26f, 0.20f),
+                SkyTop = new Color(0.10f, 0.14f, 0.28f), SkyHorizon = new Color(0.28f, 0.32f, 0.46f),
+                Sun = new Color(0.90f, 0.90f, 0.82f), Hill = new Color(0.12f, 0.14f, 0.22f),
+            },
+            new ArenaDef
+            {
+                Name = "Adobe Mission", Seed = 1113, Style = ArenaStyle.Town,
+                Background = "Art/Locations/adobe_mission",
+                GroundBase = new Color(0.76f, 0.58f, 0.38f),
+                GroundShade = new Color(0.62f, 0.46f, 0.30f),
+                Speck = new Color(0.50f, 0.36f, 0.22f),
+                Divider = new Color(0.40f, 0.28f, 0.16f, 0.28f),
+                CameraFill = new Color(0.72f, 0.54f, 0.36f),
+                SkyTop = new Color(0.35f, 0.62f, 0.78f), SkyHorizon = new Color(0.93f, 0.78f, 0.55f),
+                Sun = new Color(1f, 0.92f, 0.70f), Hill = new Color(0.55f, 0.38f, 0.28f),
             },
         };
 

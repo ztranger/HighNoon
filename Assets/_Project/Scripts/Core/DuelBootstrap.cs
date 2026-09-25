@@ -64,7 +64,8 @@ namespace HighNoon
             }
             else if (useMatchSettings)
             {
-                MatchSettings.ForcedArena = null; // PvP/Coop use random arenas
+                // PvP/Coop: honor the SETUP/HOME location pick (null = random).
+                MatchSettings.ForcedArena = MatchSettings.MenuArena;
             }
 
             if (duelConfig == null) duelConfig = RuntimeDuelConfig();

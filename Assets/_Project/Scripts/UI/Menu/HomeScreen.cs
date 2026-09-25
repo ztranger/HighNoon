@@ -11,7 +11,7 @@ namespace HighNoon
 
         Image _heroImg;
         UiSpriteAnim _heroAnim;
-        Text _charName;
+        Text _charName, _arenaName;
 
         public void Build(RectTransform root, UiBuild ui, Action<MenuScreenId> go)
         {
@@ -53,6 +53,12 @@ namespace HighNoon
                 else { Campaign.StartRun(); DuelFlow.Story(StoryKind.ChapterIntro); }
             });
 
+            _arenaName = ui.Text(root, "ArenaName", "RANDOM", 26, new Vector2(0.70f, 0.14f), Vector2.zero, 320, 44, UiBuild.Gold, FontStyle.Bold);
+            var aPrev = ui.Button(root, "ArenaPrev", "<", new Vector2(0.70f, 0.14f), new Vector2(-220f, 0f), 80, 80, 44, UiBuild.Normal, out _);
+            var aNext = ui.Button(root, "ArenaNext", ">", new Vector2(0.70f, 0.14f), new Vector2(220f, 0f), 80, 80, 44, UiBuild.Normal, out _);
+            aPrev.onClick.AddListener(() => { MatchSettings.CycleMenuArena(-1); Refresh(); });
+            aNext.onClick.AddListener(() => { MatchSettings.CycleMenuArena(1); Refresh(); });
+
             Refresh();
         }
 
@@ -72,6 +78,7 @@ namespace HighNoon
                 }
             }
             if (_charName != null) _charName.text = string.IsNullOrEmpty(c.Title) ? c.Id : c.Title;
+            if (_arenaName != null) _arenaName.text = MatchSettings.MenuArenaLabel;
         }
 
         void Cycle(int dir)

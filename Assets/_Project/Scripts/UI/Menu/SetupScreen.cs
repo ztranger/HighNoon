@@ -10,7 +10,8 @@ namespace HighNoon
         public RectTransform Root { get; private set; }
 
         Image _pvpImg, _coopImg, _pveImg, _reactionImg, _timingImg, _p1Img, _p2Img, _easyImg, _normalImg, _hardImg;
-        Text _weaponName;
+        Image _arenaPrevImg, _arenaNextImg;
+        Text _weaponName, _arenaName;
         Action _refresh;
 
         public void Build(RectTransform root, UiBuild ui, Action back, Action<MenuScreenId> go, Action refresh)
@@ -39,6 +40,13 @@ namespace HighNoon
             var p2 = ui.Button(root, "TwoPlayers", "2 PLAYERS", new Vector2(0.5f, 0.5f), new Vector2(-260f, -140f), 280, 80, 30, UiBuild.Normal, out _p2Img);
             p1.onClick.AddListener(() => { MatchSettings.Players = PvPPlayers.OnePlayer; _refresh(); });
             p2.onClick.AddListener(() => { MatchSettings.Players = PvPPlayers.TwoPlayers; _refresh(); });
+
+            ui.Text(root, "ArenaLabel", "LOCATION", 28, new Vector2(0.5f, 0.5f), new Vector2(-420f, -240f), 700, 40, UiBuild.Label, FontStyle.Normal);
+            var aPrev = ui.Button(root, "ArenaPrev", "<", new Vector2(0.5f, 0.5f), new Vector2(-640f, -320f), 80, 80, 40, UiBuild.Normal, out _arenaPrevImg);
+            _arenaName = ui.Text(root, "ArenaName", "RANDOM", 26, new Vector2(0.5f, 0.5f), new Vector2(-420f, -320f), 340, 80, UiBuild.Gold, FontStyle.Bold);
+            var aNext = ui.Button(root, "ArenaNext", ">", new Vector2(0.5f, 0.5f), new Vector2(-200f, -320f), 80, 80, 40, UiBuild.Normal, out _arenaNextImg);
+            aPrev.onClick.AddListener(() => { MatchSettings.CycleMenuArena(-1); _refresh(); });
+            aNext.onClick.AddListener(() => { MatchSettings.CycleMenuArena(1); _refresh(); });
 
             ui.Text(root, "DiffLabel", "BOT DIFFICULTY", 28, new Vector2(0.5f, 0.5f), new Vector2(420f, 300f), 700, 40, UiBuild.Label, FontStyle.Normal);
             var easy = ui.Button(root, "Easy", "EASY", new Vector2(0.5f, 0.5f), new Vector2(200f, 220f), 200, 80, 30, UiBuild.Normal, out _easyImg);
@@ -94,6 +102,14 @@ namespace HighNoon
             bool botUsed = (mode == GameMode.PvP && MatchSettings.Players == PvPPlayers.OnePlayer) || mode == GameMode.Coop;
             float da = botUsed ? 1f : 0.4f;
             UiBuild.SetAlpha(_easyImg, da); UiBuild.SetAlpha(_normalImg, da); UiBuild.SetAlpha(_hardImg, da);
+
+            if (_arenaName != null) _arenaName.text = MatchSettings.MenuArenaLabel;
+            float aa = mode != GameMode.PvE ? 1f : 0.4f;
+            UiBuild.SetAlpha(_arenaPrevImg, aa); UiBuild.SetAlpha(_arenaNextImg, aa);
+            if (_arenaName != null)
+            {
+                var c = _arenaName.color; c.a = aa; _arenaName.color = c;
+            }
 
             if (_weaponName != null) _weaponName.text = "WEAPON: " + Weapons.Selected.Name;
         }

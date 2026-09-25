@@ -22,6 +22,8 @@ namespace HighNoon
         public static GameObject Build(ArenaDef def)
         {
             var root = new GameObject("BackgroundRoot");
+            if (TryPainted(def, root))
+                return root;
 
             var cam = Camera.main;
             float halfH = cam != null ? cam.orthographicSize : 4.4f;
@@ -65,6 +67,49 @@ namespace HighNoon
 
             PlaceProps(def, root.transform);
             return root;
+        }
+
+        // ---------- painted backdrop ----------
+
+        /// <summary>
+        /// Full-frame painted location. Height fills the camera (ortho size × 2); extra width
+        /// is the 20:9 side pad from the 2560×1080 spec. No procedural props — they're in the art.
+        /// </summary>
+        static bool TryPainted(ArenaDef def, GameObject root)
+        {
+            if (def == null || string.IsNullOrEmpty(def.Background)) return false;
+            var sprite = LoadPainted(def.Background);
+            if (sprite == null)
+            {
+                Debug.LogWarning($"[Background] missing Resources/{def.Background} — procedural fallback.");
+                return false;
+            }
+
+            var cam = Camera.main;
+            float halfH = cam != null ? cam.orthographicSize : 4.4f;
+            float srcH = sprite.bounds.size.y;
+            if (srcH < 0.001f) return false;
+
+            var go = new GameObject("Painted");
+            go.transform.SetParent(root.transform);
+            go.transform.position = Vector3.zero;
+            float scale = (halfH * 2f) / srcH;
+            go.transform.localScale = new Vector3(scale, scale, 1f);
+            var sr = go.AddComponent<SpriteRenderer>();
+            sr.sprite = sprite;
+            sr.sortingOrder = -120;
+            return true;
+        }
+
+        static Sprite LoadPainted(string path)
+        {
+            var spr = Resources.Load<Sprite>(path);
+            if (spr != null) return spr;
+            var tex = Resources.Load<Texture2D>(path);
+            if (tex == null) return null;
+            tex.filterMode = FilterMode.Point;
+            tex.wrapMode = TextureWrapMode.Clamp;
+            return Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect);
         }
 
         // ---------- layers ----------

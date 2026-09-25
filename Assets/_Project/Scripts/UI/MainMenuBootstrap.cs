@@ -68,7 +68,12 @@ namespace HighNoon
             }
             if (_stats.Root != null) _stats.Root.gameObject.SetActive(id == MenuScreenId.Stats);
             if (_guns.Root != null) _guns.Root.gameObject.SetActive(id == MenuScreenId.Guns);
-            if (_setup.Root != null) _setup.Root.gameObject.SetActive(id == MenuScreenId.Setup);
+            if (_setup.Root != null)
+            {
+                bool on = id == MenuScreenId.Setup;
+                _setup.Root.gameObject.SetActive(on);
+                if (on) _setup.Refresh();
+            }
             if (_settings.Root != null) _settings.Root.gameObject.SetActive(id == MenuScreenId.Settings);
         }
 

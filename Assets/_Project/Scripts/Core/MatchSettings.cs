@@ -19,8 +19,27 @@ namespace HighNoon
         /// the PvE campaign overrides it per stage in <see cref="Campaign.ApplyToMatch"/>.</summary>
         public static DuelType Type = DuelType.Reaction;
 
-        /// <summary>Arena name to pin (PvE stage via <see cref="Campaign.ApplyToMatch"/>), or null for a random pick.</summary>
+        /// <summary>Menu location pick for PvP/Coop. Null = random. PvE still pins the stage arena.</summary>
+        public static string MenuArena = null;
+
+        /// <summary>Arena name to pin for this duel (PvE stage or a copy of <see cref="MenuArena"/>), or null for a random pick.</summary>
         public static string ForcedArena = null;
+
+        public static string MenuArenaLabel =>
+            string.IsNullOrEmpty(MenuArena) ? "RANDOM" : MenuArena.ToUpperInvariant();
+
+        public static void CycleMenuArena(int dir)
+        {
+            var all = Arenas.All;
+            int n = all.Length + 1; // 0 = random
+            int i = 0;
+            if (!string.IsNullOrEmpty(MenuArena))
+                for (int k = 0; k < all.Length; k++)
+                    if (all[k].Name == MenuArena) { i = k + 1; break; }
+            i = (i + dir) % n;
+            if (i < 0) i += n;
+            MenuArena = i == 0 ? null : all[i - 1].Name;
+        }
 
         /// <summary>Writes difficulty-appropriate reaction times into a bot config.</summary>
         public static void ApplyDifficulty(BotConfig cfg)

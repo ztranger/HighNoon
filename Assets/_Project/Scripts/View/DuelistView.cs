@@ -17,7 +17,7 @@ namespace HighNoon
     /// </summary>
     public class DuelistView : MonoBehaviour
     {
-        public const float StreetY = -1.35f; // street line where a real cowboy's feet sit
+        public const float StreetY = -2.0f; // near street, below the painted horizon (~-0.9)
         const float GroundY = StreetY;
         const float DepthToY = 0.30f; // 2v2 lane vertical stagger (from the pos.y the bootstrap passes)
 
