@@ -51,6 +51,8 @@ namespace HighNoon
     /// </summary>
     public static class CowboyCatalog
     {
+        /// <summary>Standing figure world height — every sheet/rig duelist is scaled to this.</summary>
+        public const float FigureHeight = 3.2f;
         public static readonly CowboyCharacter DustyHart = new CowboyCharacter
         {
             Id = "dusty_hart", ResourcePath = "Art/Cowboys/char_dusty_hart",
@@ -214,6 +216,18 @@ namespace HighNoon
             FeetInset = 0f,
         };
 
+        /// <summary>Third cabaret dancer — 4×2 sheets (walk / idle / shoot / death).</summary>
+        public static readonly CowboyCharacter CabaretDancer8 = new CowboyCharacter
+        {
+            Id = "cabaret_dancer_8", Title = "CABARET DANCER 3", FacesRight = true, Height = 3.2f,
+            Atlas      = "Art/Cowboys/sheets/cabaret_dancer_8/walk",
+            IdleAtlas  = "Art/Cowboys/sheets/cabaret_dancer_8/idle",
+            ShootAtlas = "Art/Cowboys/sheets/cabaret_dancer_8/shoot",
+            DeathAtlas = "Art/Cowboys/sheets/cabaret_dancer_8/death",
+            SheetCols = 4, SheetRows = 2,
+            FeetInset = 0f,
+        };
+
         /// <summary>Cut-out skeletal cowboy (eight part PNGs; weapon mounts in the hand) — the code-built bone rig.</summary>
         public static readonly CowboyCharacter HeroRig = new CowboyCharacter
         {
@@ -221,10 +235,10 @@ namespace HighNoon
             RigBase = "Art/Cowboys/hero_rig",
         };
 
-        static readonly CowboyCharacter[] All = { Gunslinger, SaloonSinger, NativeArcher, Lady1, CabaretSinger, CabaretSinger2, CabaretSinger3, CabaretSinger4, CabaretSinger5, CabaretDancer6, CabaretDancer7, HeroRig, Hero, DustyHart, RioVela, BlackCalhoun, DocGraves };
+        static readonly CowboyCharacter[] All = { Gunslinger, SaloonSinger, NativeArcher, Lady1, CabaretSinger, CabaretSinger2, CabaretSinger3, CabaretSinger4, CabaretSinger5, CabaretDancer6, CabaretDancer7, CabaretDancer8, HeroRig, Hero, DustyHart, RioVela, BlackCalhoun, DocGraves };
 
         /// <summary>Sheet characters the player can pick as their duelist.</summary>
-        public static readonly CowboyCharacter[] Playable = { Gunslinger, SaloonSinger, NativeArcher, Lady1, CabaretSinger, CabaretSinger2, CabaretSinger3, CabaretSinger4, CabaretSinger5, CabaretDancer6, CabaretDancer7 };
+        public static readonly CowboyCharacter[] Playable = { Gunslinger, SaloonSinger, NativeArcher, Lady1, CabaretSinger, CabaretSinger2, CabaretSinger3, CabaretSinger4, CabaretSinger5, CabaretDancer6, CabaretDancer7, CabaretDancer8 };
 
         /// <summary>Currently selected playable character (falls back to the gunslinger).</summary>
         public static CowboyCharacter Selected

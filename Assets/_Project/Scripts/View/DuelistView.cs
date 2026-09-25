@@ -21,8 +21,9 @@ namespace HighNoon
         const float GroundY = StreetY;
         const float DepthToY = 0.30f; // 2v2 lane vertical stagger (from the pos.y the bootstrap passes)
 
-        // Frame rates for frame-based modes (sheet / procedural).
+        // Frame rates for frame-based modes (sheet / procedural) — overridden by clip JSON when set.
         const float FpsWalk = 8f, FpsIdle = 7f, FpsShoot = 12f, FpsDeath = 10f;
+        string _clip = "Idle";
 
         SpriteRenderer _sr;
         FrameAnimator _anim;
@@ -66,13 +67,13 @@ namespace HighNoon
         /// <summary><paramref name="rightSide"/> = this duelist stands on the right of the street
         /// (walks in from the right, sprite mirrored to face left toward the centre).</summary>
         public void Setup(SpriteRenderer sr, CowboyLook look, bool rightSide)
-            => SetupInternal(sr, ResolveCharacter(look), look, rightSide);
+            => SetupInternal(sr, ResolveCharacter(look), look, rightSide, matchHeight: true);
 
         /// <summary>Set up with an explicit character (preview/debug tools bypass look-based resolution).</summary>
-        public void SetupCharacter(SpriteRenderer sr, CowboyCharacter character, bool rightSide)
-            => SetupInternal(sr, character, null, rightSide);
+        public void SetupCharacter(SpriteRenderer sr, CowboyCharacter character, bool rightSide, bool matchHeight = true)
+            => SetupInternal(sr, character, null, rightSide, matchHeight);
 
-        void SetupInternal(SpriteRenderer sr, CowboyCharacter character, CowboyLook look, bool rightSide)
+        void SetupInternal(SpriteRenderer sr, CowboyCharacter character, CowboyLook look, bool rightSide, bool matchHeight)
         {
             _sr = sr;
             _rightSide = rightSide;
@@ -90,8 +91,7 @@ namespace HighNoon
                     _skeletal = true;
                     _sr.enabled = false; // the body is the child bones; the base renderer stays empty
                     ResetPose();
-                    PlantOnStreet();
-                    _popupUp = _char.RigHeight * 0.98f;
+                    FinishSetup(matchHeight);
                     return;
                 }
             }
@@ -105,8 +105,7 @@ namespace HighNoon
                 _static = false;
                 _anim.ShowStatic(_frames.Idle[0]);
                 _sr.flipX = rightSide; // sheet faces right natively → mirror on the right
-                PlantOnStreet();
-                _popupUp = _char.Height * 0.95f;
+                FinishSetup(matchHeight);
                 return;
             }
 
@@ -117,8 +116,7 @@ namespace HighNoon
                 _static = true;
                 _anim.ShowStatic(_staticSprite);
                 _sr.flipX = rightSide ? _char.FacesRight : !_char.FacesRight;
-                PlantOnStreet();
-                _popupUp = _char.Height + 0.35f;
+                FinishSetup(matchHeight);
                 return;
             }
 
@@ -127,27 +125,32 @@ namespace HighNoon
             _static = false;
             _sr.sprite = _frames.Idle[0];
             _sr.flipX = rightSide;
-            _popupUp = 1.6f;
-            _homePos = transform.position;
-            _offscreenPos = _homePos + (rightSide ? Vector3.right : Vector3.left) * 9f;
+            FinishSetup(matchHeight);
+        }
+
+        void FinishSetup(bool matchHeight)
+        {
+            PlantOnStreet();
+            if (matchHeight) FitFigure(CowboyCatalog.FigureHeight);
+            else if (!_skeletal) _popupUp = _char != null ? _char.Height * 0.95f : 1.6f;
+            else if (_char != null) _popupUp = _char.RigHeight * 0.98f;
         }
 
         /// <summary>
         /// Scale so the standing figure (opaque idle pixels) is <paramref name="targetHeight"/>
-        /// world units, and plant the opaque feet on the street. Preview/test only — duel
-        /// keeps atlas PPU as authored.
+        /// world units, and plant the opaque feet on the current street Y (keeps 2v2 lane stagger).
         /// </summary>
         public void FitFigure(float targetHeight)
         {
             if (targetHeight < 0.01f) return;
+            float streetY = transform.position.y;
 
             if (_skeletal)
             {
                 float rh = _char != null && _char.RigHeight > 0.01f ? _char.RigHeight : targetHeight;
                 float s = targetHeight / rh;
                 transform.localScale = new Vector3(s, s, 1f);
-                var p = transform.position;
-                transform.position = new Vector3(p.x, GroundY, 0f);
+                transform.position = new Vector3(transform.position.x, streetY, 0f);
                 _homePos = transform.position;
                 _offscreenPos = _homePos + (_rightSide ? Vector3.right : Vector3.left) * 9f;
                 _popupUp = targetHeight * 0.95f;
@@ -165,16 +168,55 @@ namespace HighNoon
             float scale = targetHeight / figH;
             transform.localScale = new Vector3(scale, scale, 1f);
 
-            // Sprite local Y is pixels from the pivot (cell bottom when FeetInset = 0).
             float pivotY = sprite.pivot.y;
             float opaqueBottomFromPivot = (opaque.yMin - sprite.rect.yMin) - pivotY;
             float feetLocalY = opaqueBottomFromPivot / ppu * scale;
             var pos = transform.position;
-            transform.position = new Vector3(pos.x, GroundY - feetLocalY, 0f);
+            transform.position = new Vector3(pos.x, streetY - feetLocalY, 0f);
             _homePos = transform.position;
             _offscreenPos = _homePos + (_rightSide ? Vector3.right : Vector3.left) * 9f;
             _popupUp = targetHeight * 0.95f;
         }
+
+        public string PlayingClip => _clip;
+
+        public float ClipFps(string clip)
+        {
+            if (_frames == null) return CowboySheet.DefaultFps(clip);
+            if (clip == "Idle") return _frames.IdleFps > 0.01f ? _frames.IdleFps : FpsIdle;
+            if (clip == "Shoot") return _frames.ShootFps > 0.01f ? _frames.ShootFps : FpsShoot;
+            if (clip == "Death") return _frames.DeathFps > 0.01f ? _frames.DeathFps : FpsDeath;
+            return _frames.WalkFps > 0.01f ? _frames.WalkFps : FpsWalk;
+        }
+
+        public float NudgeClipFps(string clip, float delta)
+        {
+            float fps = Mathf.Clamp(ClipFps(clip) + delta, 1f, 24f);
+            if (_frames != null)
+            {
+                if (clip == "Idle") _frames.IdleFps = fps;
+                else if (clip == "Shoot") _frames.ShootFps = fps;
+                else if (clip == "Death") _frames.DeathFps = fps;
+                else _frames.WalkFps = fps;
+            }
+            CowboySheet.SetClipFps(_char, clip, fps);
+            ReplayClip(clip);
+            return fps;
+        }
+
+        void ReplayClip(string clip)
+        {
+            if (_skeletal || _static) return;
+            if (clip == "Walk") _anim.Play(WalkFrames, ClipFps("Walk"), loop: true);
+            else if (clip == "Shoot") _anim.Play(_frames.Shoot, ClipFps("Shoot"), loop: false);
+            else if (clip == "Death") _anim.Play(_frames.Death, ClipFps("Death"), loop: false);
+            else _anim.Play(_frames.Ready, ClipFps("Idle"), loop: true);
+        }
+
+        float WalkRate => ClipFps("Walk");
+        float IdleRate => ClipFps("Idle");
+        float ShootRate => ClipFps("Shoot");
+        float DeathRate => ClipFps("Death");
 
         /// <summary>Feet on the street; normalization is baked into the sprite (PPU) so scale = 1.
         /// The pos.y the bootstrap passes becomes a small depth stagger for 2v2 lanes.</summary>
@@ -202,7 +244,7 @@ namespace HighNoon
             transform.position = _offscreenPos;
             if (_skeletal) { ResetPose(); StartCoroutine(RigWalk()); return; }
             if (_static) _anim.ShowStatic(_staticSprite);
-            else _anim.Play(WalkFrames, FpsWalk, loop: true);
+            else { _clip = "Walk"; _anim.Play(WalkFrames, WalkRate, loop: true); }
         }
 
         /// <summary>Walk-in runs on this view so <see cref="SetIdleOffscreen"/> can stop it.</summary>
@@ -217,7 +259,7 @@ namespace HighNoon
         {
             if (_skeletal) { /* legs/arms swing below */ }
             else if (_static) _anim.ShowStatic(_staticSprite);
-            else _anim.Play(WalkFrames, FpsWalk, loop: true);
+            else { _clip = "Walk"; _anim.Play(WalkFrames, WalkRate, loop: true); }
 
             float t = 0f, wt = 0f;
             Vector3 start = _offscreenPos;
@@ -245,7 +287,7 @@ namespace HighNoon
                 StartCoroutine(RigBreathe());
                 return;
             }
-            if (!_static) { _anim.Play(_frames.Ready, FpsIdle, loop: true); return; }
+            if (!_static) { _clip = "Idle"; _anim.Play(_frames.Ready, IdleRate, loop: true); return; }
             StopAllCoroutines();
             transform.rotation = Quaternion.identity;
             transform.position = _homePos;
@@ -256,7 +298,7 @@ namespace HighNoon
         public void PlayShoot()
         {
             if (_skeletal) { StopAllCoroutines(); StartCoroutine(RigShoot()); return; }
-            if (!_static) { _anim.Play(_frames.Shoot, FpsShoot, loop: false); return; }
+            if (!_static) { _clip = "Shoot"; _anim.Play(_frames.Shoot, ShootRate, loop: false); return; }
             StopAllCoroutines();
             SpawnMuzzleFlash();
             StartCoroutine(Recoil());
@@ -265,7 +307,7 @@ namespace HighNoon
         public void PlayDeath()
         {
             if (_skeletal) { StopAllCoroutines(); StartCoroutine(RigTopple()); return; }
-            if (!_static) { _anim.Play(_frames.Death, FpsDeath, loop: false); return; }
+            if (!_static) { _clip = "Death"; _anim.Play(_frames.Death, DeathRate, loop: false); return; }
             StopAllCoroutines();
             StartCoroutine(Topple());
         }

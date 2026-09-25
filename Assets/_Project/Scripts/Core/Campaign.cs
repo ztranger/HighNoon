@@ -253,12 +253,18 @@ namespace HighNoon
                 {
                     new StageDef
                     {
-                        Title = "The Marshal", Arena = "Gallows Hill", Difficulty = Difficulty.Hard,
-                        Look = new CowboyLook { Shirt = new Color(0.30f, 0.36f, 0.52f), HatColor = new Color(0.24f, 0.18f, 0.12f), Accent = new Color(0.95f, 0.80f, 0.30f), HatType = HatStyle.Wide, Chest = Accessory.Badge, Facial = FacialHair.Beard },
+                        Title = "The Prima", Arena = "Gallows Hill", Difficulty = Difficulty.Hard,
+                        Look = new CowboyLook
+                        {
+                            Shirt = new Color(0.18f, 0.28f, 0.62f),
+                            Accent = new Color(0.55f, 0.78f, 0.95f),
+                            CharacterId = "cabaret_dancer_8",
+                        },
                         Intro = new[]
                         {
-                            new DialogLine(Speaker.Opponent, "I've buried better men than you."),
-                            new DialogLine(Speaker.You,      "But you're still diggin'."),
+                            new DialogLine(Speaker.Opponent, "Gallows Hill keeps a box seat. Front row."),
+                            new DialogLine(Speaker.You,      "I didn't buy a ticket."),
+                            new DialogLine(Speaker.Opponent, "The rope still gets an encore."),
                         },
                     },
                     new StageDef

@@ -11,6 +11,10 @@ namespace HighNoon
         public Sprite[] Shoot;
         public Sprite[] Death;
         public Sprite[] Walk; // optional; DuelistView falls back to Idle
+        public float IdleFps = 7f;
+        public float WalkFps = 8f;
+        public float ShootFps = 12f;
+        public float DeathFps = 10f;
     }
 
     /// <summary>

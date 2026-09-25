@@ -42,14 +42,8 @@ namespace HighNoon.EditorTools
         {
             get
             {
-                if (!HasClip) return 8f;
-                switch (Clip.Name)
-                {
-                    case "Idle": return 7f;
-                    case "Shoot": return 12f;
-                    case "Death": return 10f;
-                    default: return 8f;
-                }
+                if (_off != null && _off.fps > 0.01f) return _off.fps;
+                return CowboySheet.DefaultFps(HasClip ? Clip.Name : "Walk");
             }
         }
 
@@ -161,6 +155,14 @@ namespace HighNoon.EditorTools
             _onion = GUILayout.Toggle(_onion, "Onion", EditorStyles.toolbarButton, GUILayout.Width(56));
             if (GUILayout.Button(_playing ? "Stop" : "Play", EditorStyles.toolbarButton, GUILayout.Width(48)))
                 TogglePlay();
+            EditorGUI.BeginChangeCheck();
+            float fps = EditorGUILayout.FloatField(PlayFps, GUILayout.Width(48));
+            if (EditorGUI.EndChangeCheck() && _off != null)
+            {
+                _off.fps = Mathf.Clamp(fps, 1f, 24f);
+                MarkDirty();
+            }
+            GUILayout.Label("fps", EditorStyles.miniLabel, GUILayout.Width(22));
             GUI.enabled = _dirty;
             if (GUILayout.Button(_dirty ? "Save *" : "Save", EditorStyles.toolbarButton, GUILayout.Width(56)))
                 Save();

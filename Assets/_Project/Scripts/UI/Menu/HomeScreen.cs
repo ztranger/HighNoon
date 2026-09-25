@@ -63,7 +63,13 @@ namespace HighNoon
             if (_heroImg != null && idle != null && idle.Length > 0)
             {
                 _heroImg.sprite = idle[0];
-                if (_heroAnim != null) _heroAnim.Play(_heroImg, idle, 7f);
+                _heroImg.rectTransform.sizeDelta = CowboySheet.UiSizeForFigure(idle[0], 400f);
+                if (_heroAnim != null)
+                {
+                    var sheet = CowboySheet.Load(c);
+                    float fps = sheet != null ? sheet.IdleFps : 7f;
+                    _heroAnim.Play(_heroImg, idle, fps);
+                }
             }
             if (_charName != null) _charName.text = string.IsNullOrEmpty(c.Title) ? c.Id : c.Title;
         }

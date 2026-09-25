@@ -21,11 +21,10 @@ namespace HighNoon
         int _charIndex, _weaponIndex;
         bool _rightSide;
         bool _matchSize = true;
-        const float PreviewHeight = 3.2f;
 
         Canvas _canvas;
         Font _font;
-        Text _charLabel, _weaponLabel, _modeLabel;
+        Text _charLabel, _weaponLabel, _modeLabel, _speedLabel;
 
         void Start()
         {
@@ -112,9 +111,8 @@ namespace HighNoon
             var sr = _cowboy.AddComponent<SpriteRenderer>();
             sr.sortingOrder = 10;
             _view = _cowboy.AddComponent<DuelistView>();
-            _view.SetupCharacter(sr, c, _rightSide);
+            _view.SetupCharacter(sr, c, _rightSide, _matchSize);
             _view.SetWeapon(Weapons.Get(_weaponIndex));
-            if (_matchSize) _view.FitFigure(PreviewHeight);
             _view.Stance();
             UpdateLabels();
         }
@@ -126,6 +124,12 @@ namespace HighNoon
             if (_weaponLabel) _weaponLabel.text = $"WEAPON:  {Weapons.Get(_weaponIndex).Name}";
             if (_modeLabel) _modeLabel.text = (_rightSide ? "FACING: LEFT (mirrored)" : "FACING: RIGHT")
                 + (_matchSize ? "  ·  SIZE: MATCH" : "  ·  SIZE: RAW");
+            if (_speedLabel)
+            {
+                string clip = _view != null ? _view.PlayingClip : "Idle";
+                float fps = _view != null ? _view.ClipFps(clip) : CowboySheet.DefaultFps(clip);
+                _speedLabel.text = $"SPEED:  {clip.ToUpper()}  {fps:0.#} FPS";
+            }
         }
 
         void CycleChar(int d)
@@ -146,6 +150,13 @@ namespace HighNoon
         void Flip() { _rightSide = !_rightSide; Spawn(); }
 
         void ToggleMatch() { _matchSize = !_matchSize; Spawn(); }
+
+        void NudgeSpeed(float delta)
+        {
+            if (_view == null) return;
+            _view.NudgeClipFps(_view.PlayingClip, delta);
+            UpdateLabels();
+        }
 
         // ---------- UI ----------
 
@@ -170,14 +181,18 @@ namespace HighNoon
             MakeButton("<", top, new Vector2(-330f, -104f), new Vector2(70f, 44f), () => CycleWeapon(-1));
             MakeButton(">", top, new Vector2(330f, -104f), new Vector2(70f, 44f), () => CycleWeapon(1));
 
-            _modeLabel = MakeText("modeLabel", top, new Vector2(0f, -152f), new Vector2(560f, 36f), 22, TextAnchor.MiddleCenter);
+            _modeLabel = MakeText("modeLabel", top, new Vector2(0f, -152f), new Vector2(720f, 36f), 22, TextAnchor.MiddleCenter);
+
+            _speedLabel = MakeText("speedLabel", top, new Vector2(0f, -198f), new Vector2(560f, 36f), 22, TextAnchor.MiddleCenter);
+            MakeButton("−", top, new Vector2(-330f, -198f), new Vector2(70f, 40f), () => NudgeSpeed(-1f));
+            MakeButton("+", top, new Vector2(330f, -198f), new Vector2(70f, 40f), () => NudgeSpeed(1f));
 
             var actions = new (string, UnityAction)[]
             {
-                ("WALK-IN", () => { if (_view) _view.BeginWalkIn(1.2f); }),
-                ("IDLE",    () => { if (_view) _view.Stance(); }),
-                ("DRAW",    () => { if (_view) _view.PlayShoot(); }),
-                ("DEATH",   () => { if (_view) _view.PlayDeath(); }),
+                ("WALK-IN", () => { if (_view) { _view.BeginWalkIn(1.2f); UpdateLabels(); } }),
+                ("IDLE",    () => { if (_view) { _view.Stance(); UpdateLabels(); } }),
+                ("DRAW",    () => { if (_view) { _view.PlayShoot(); UpdateLabels(); } }),
+                ("DEATH",   () => { if (_view) { _view.PlayDeath(); UpdateLabels(); } }),
                 ("RESET",   () => Spawn()),
                 ("FLIP",    () => Flip()),
                 ("SIZE",    () => ToggleMatch()),

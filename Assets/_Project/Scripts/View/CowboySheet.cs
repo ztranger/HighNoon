@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 
 namespace HighNoon
@@ -12,6 +13,7 @@ namespace HighNoon
         public int rows;
         public int[] dx;
         public int[] dy;
+        public float fps; // 0 = clip default (idle 7, walk 8, shoot 12, death 10)
 
         public static CowboyAtlasOffsets Create(int cols, int rows)
         {
@@ -94,6 +96,16 @@ namespace HighNoon
             if (minX == int.MaxValue) return false;
             bounds = new Rect(x0 + minX, y0 + minY, maxX - minX + 1, maxY - minY + 1);
             return true;
+        }
+
+        /// <summary>uGUI sizeDelta so the opaque figure is <paramref name="figurePixels"/> tall (full cell, preserveAspect).</summary>
+        public static Vector2 UiSizeForFigure(Sprite sprite, float figurePixels)
+        {
+            if (sprite == null || figurePixels < 1f) return new Vector2(340f, 460f);
+            if (!TryOpaqueBounds(sprite, out var o) || o.height < 1f)
+                return new Vector2(figurePixels * 0.75f, figurePixels * 1.15f);
+            float s = figurePixels / o.height;
+            return new Vector2(sprite.rect.width * s, sprite.rect.height * s);
         }
 
         static Color32[] PixelsOf(Texture2D src)
@@ -237,6 +249,63 @@ namespace HighNoon
             catch { return null; }
         }
 
+        public static float DefaultFps(string clipName)
+        {
+            if (string.Equals(clipName, "Idle", StringComparison.OrdinalIgnoreCase)) return 7f;
+            if (string.Equals(clipName, "Shoot", StringComparison.OrdinalIgnoreCase)) return 12f;
+            if (string.Equals(clipName, "Death", StringComparison.OrdinalIgnoreCase)) return 10f;
+            return 8f;
+        }
+
+        public static float ClipFps(string atlas, string clipName)
+        {
+            var off = LoadOffsets(atlas);
+            return off != null && off.fps > 0.01f ? off.fps : DefaultFps(clipName);
+        }
+
+        public static string ClipPath(CowboyCharacter c, string clipName)
+        {
+            foreach (var clip in Clips(c))
+                if (clip.Name == clipName) return clip.Path;
+            return null;
+        }
+
+        public static void SetClipFps(CowboyCharacter c, string clipName, float fps)
+        {
+            if (c == null) return;
+            fps = Mathf.Clamp(fps, 1f, 24f);
+            AtlasClip found = default;
+            bool ok = false;
+            foreach (var clip in Clips(c))
+            {
+                if (clip.Name != clipName) continue;
+                found = clip;
+                ok = true;
+                break;
+            }
+            if (!ok || string.IsNullOrEmpty(found.Path)) return;
+            if (!TryGrid(found.Path, found.Cols, found.Rows, out var g)) return;
+            var off = LoadOffsets(found.Path) ?? CowboyAtlasOffsets.Create(g.Cols, g.Rows);
+            off.Ensure(g.Cols, g.Rows);
+            off.fps = fps;
+            if (Cache.TryGetValue(c.Id, out var frames) && frames != null)
+                ApplyFps(frames, clipName, fps);
+#if UNITY_EDITOR
+            string abs = Path.GetFullPath(Path.Combine(Application.dataPath, "_Project/Resources", found.Path + ".json"));
+            Directory.CreateDirectory(Path.GetDirectoryName(abs) ?? ".");
+            File.WriteAllText(abs, JsonUtility.ToJson(off, true));
+            UnityEditor.AssetDatabase.ImportAsset("Assets/_Project/Resources/" + found.Path + ".json");
+#endif
+        }
+
+        static void ApplyFps(CowboyFrames frames, string clipName, float fps)
+        {
+            if (string.Equals(clipName, "Idle", StringComparison.OrdinalIgnoreCase)) frames.IdleFps = fps;
+            else if (string.Equals(clipName, "Shoot", StringComparison.OrdinalIgnoreCase)) frames.ShootFps = fps;
+            else if (string.Equals(clipName, "Death", StringComparison.OrdinalIgnoreCase)) frames.DeathFps = fps;
+            else frames.WalkFps = fps;
+        }
+
         /// <summary>One texture, uniform cols×rows. Sprite.Create rects = UV cells on that atlas.</summary>
         static CowboyFrames LoadAtlas(CowboyCharacter c)
         {
@@ -262,6 +331,10 @@ namespace HighNoon
                 Shoot = shoot,
                 Death = death,
                 Walk  = walk,
+                WalkFps  = ClipFps(c.Atlas, "Walk"),
+                IdleFps  = ClipFps(string.IsNullOrEmpty(c.IdleAtlas) ? c.Atlas : c.IdleAtlas, "Idle"),
+                ShootFps = ClipFps(string.IsNullOrEmpty(c.ShootAtlas) ? c.Atlas : c.ShootAtlas, "Shoot"),
+                DeathFps = ClipFps(string.IsNullOrEmpty(c.DeathAtlas) ? c.Atlas : c.DeathAtlas, "Death"),
             };
             Cache[c.Id] = frames;
             return frames;
