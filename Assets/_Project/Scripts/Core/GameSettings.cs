@@ -3,8 +3,8 @@ using UnityEngine;
 namespace HighNoon
 {
     /// <summary>
-    /// Persisted player preferences (PlayerPrefs). Currently audio + haptics toggles and a
-    /// master volume; read via the static properties from anywhere. Lazily loaded on first use.
+    /// Persisted player preferences (PlayerPrefs): audio, haptics, volume, weapon, and the
+    /// armor cap the player brings into a duel. Read via the static properties. Lazily loaded.
     /// </summary>
     public static class GameSettings
     {
@@ -15,6 +15,10 @@ namespace HighNoon
         const string KTutorial = "hn_tutorial_done";
         const string KWeapon = "hn_weapon";
         const string KCharacter = "hn_character";
+        const string KArmor = "hn_armor";
+
+        public const int ArmorBase = 3;
+        public const int ArmorCap = 8;
 
         static bool _loaded;
         static bool _sfx = true;
@@ -24,6 +28,7 @@ namespace HighNoon
         static bool _tutorial;
         static int _weapon;
         static string _character = "gunslinger";
+        static int _armor = ArmorBase;
 
         static void Load()
         {
@@ -36,6 +41,24 @@ namespace HighNoon
             _tutorial = PlayerPrefs.GetInt(KTutorial, 0) == 1;
             _weapon = PlayerPrefs.GetInt(KWeapon, 0);
             _character = PlayerPrefs.GetString(KCharacter, "gunslinger");
+            _armor = Mathf.Clamp(PlayerPrefs.GetInt(KArmor, ArmorBase), ArmorBase, ArmorCap);
+        }
+
+        /// <summary>How much armor the player brings into a duel. Raised from the STATS tab, capped.</summary>
+        public static int ArmorMax
+        {
+            get { Load(); return _armor; }
+        }
+
+        /// <summary>Raise the saved armor maximum by one. Returns false at the cap.</summary>
+        public static bool UpgradeArmor()
+        {
+            Load();
+            if (_armor >= ArmorCap) return false;
+            _armor++;
+            PlayerPrefs.SetInt(KArmor, _armor);
+            SaveData.Save();
+            return true;
         }
 
         /// <summary>Index into <see cref="Weapons.All"/> of the player's chosen weapon.</summary>

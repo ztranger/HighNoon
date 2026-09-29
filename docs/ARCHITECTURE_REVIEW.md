@@ -63,6 +63,8 @@ Deliberate product constraints (from `CLAUDE.md`) — do not violate:
 
 **Done 2026-09-09.** Shared `PlayIntroAndStance`. Scene loads go through `DuelFlow`. Decide-step is `DuelResolve` (Edit Mode tests in `Assets/_Project/Tests/Editor`). `ShowPveResult` still lives on the manager (campaign mutators + HUD) — that's game flow, not navigation.
 
+**Volley and Sync (2026-09-29) stay rounds, not mode enums.** `DuelType.Volley` is `RunVolleyMatch` (one tap at a time, `StageDef.Opponents` clamped 2–3). `DuelType.Sync` is `RunSyncMatch`: two bars, two `HumanDuelInput`s, even foe count 2 or 4 so each pistol fires `count / 2` shots. A green tap removes `WeaponDef.Damage` and drops that foe at 0 HP; a miss spends armor and the same foe stays. The pair repeats until both are down or armor hits 0. Foe bars appear only when `StageDef.Hp` exceeds the equipped damage. Reaction and Timing do not use this loop. Both sit on the same shell (intro/stance, Timing bar, `ShowPveResult`), use no lanes or tie-break, and are not `GameMode`s. `IDuelInput` stays one-shot: Volley re-arms one input between windows; Sync re-arms one input per hand between waves and does not put both hands on the duelist's single `Input`. Do not fold either roster into `BuildPve`'s 2v2 pairing.
+
 ### 3.2 Static bags instead of a session
 
 Today:
@@ -310,7 +312,7 @@ Do not combine (1) with meta UI. Do not "while I'm here" rewrite `DuelManager` i
 
 - Rewrite to ECS, Zenject, UniTask-everywhere, or asmdef spaghetti for 42 files.
 - Visible pre-BANG countdown or a menu arena picker.
-- Pay-to-win stats on weapons (META principle 1). Weapons are sound + icon until a dedicated stats pass.
+- Pay-to-win weapon stats or a shop (META principle 1). `WeaponDef.Damage` and the free STATS **REINFORCE** armor bump are the only combat numbers; do not sell either.
 - APK builds from the agent environment.
 - Git commits unless the user asks.
 - Expanding `MainMenuBootstrap` with pass/shop/crates panels — new screens, not more tabs in the same class.

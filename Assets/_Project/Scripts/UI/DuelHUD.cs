@@ -21,6 +21,15 @@ namespace HighNoon
         GameObject _resultPanel;
         Text _resultText;
         Text _pveStatus;
+        Text _armorText;
+        readonly List<HpPlate> _plates = new List<HpPlate>();
+
+        sealed class HpPlate
+        {
+            public Duelist Owner;
+            public GameObject Root;
+            public RectTransform Fill;
+        }
         Button _btn1, _btn2;
         Text _btn1Label, _btn2Label;
         Action _act1, _act2;
@@ -58,6 +67,11 @@ namespace HighNoon
             _pveStatus.color = new Color(1f, 0.94f, 0.78f);
             _pveStatus.fontStyle = FontStyle.Bold;
             _pveStatus.gameObject.SetActive(false);
+
+            _armorText = MakeText(transform, "Armor", 34, new Vector2(0.5f, 0.90f), Vector2.zero, 700, 48);
+            _armorText.color = new Color(0.75f, 0.86f, 1f);
+            _armorText.fontStyle = FontStyle.Bold;
+            _armorText.gameObject.SetActive(false);
 
             BuildResultPanel();
             _resultPanel.SetActive(false);
@@ -133,6 +147,9 @@ namespace HighNoon
             _reactions.Clear();
             foreach (var b in _timingBars) if (b != null) Destroy(b.gameObject);
             _timingBars.Clear();
+            foreach (var p in _plates) if (p.Root != null) Destroy(p.Root);
+            _plates.Clear();
+            if (_armorText != null) _armorText.gameObject.SetActive(false);
             _resultPanel.SetActive(false);
         }
 
@@ -144,6 +161,92 @@ namespace HighNoon
             bar.Build(transform, _font, topSide, anchoredPos, width, height, greenCenter, greenHalf, label);
             _timingBars.Add(bar);
             return bar;
+        }
+
+        /// <summary>Player armor for this duel. Hidden again by <see cref="HideAll"/>.</summary>
+        public void ShowArmor(int hp, int max)
+        {
+            if (_armorText == null) return;
+            _armorText.gameObject.SetActive(true);
+            _armorText.text = $"ARMOR  {Mathf.Max(0, hp)}/{Mathf.Max(1, max)}";
+            _armorText.color = hp <= 1
+                ? new Color(1f, 0.45f, 0.4f)
+                : new Color(0.75f, 0.86f, 1f);
+        }
+
+        /// <summary>
+        /// Head bar for a foe who survives a single shot of <paramref name="shotDamage"/>.
+        /// One-shot foes get no bar. Later calls with the same duelist only refresh the fill.
+        /// </summary>
+        public void ShowFoeHealth(Duelist foe, int shotDamage)
+        {
+            if (foe == null) return;
+            var plate = PlateFor(foe);
+            if (foe.MaxHp <= Mathf.Max(1, shotDamage))
+            {
+                if (plate != null) plate.Root.SetActive(false);
+                return;
+            }
+            if (plate == null)
+            {
+                plate = BuildPlate(foe);
+                _plates.Add(plate);
+            }
+            plate.Root.SetActive(foe.Hp > 0);
+            SetFill(plate, foe.Hp, foe.MaxHp);
+        }
+
+        HpPlate PlateFor(Duelist foe)
+        {
+            for (int i = 0; i < _plates.Count; i++)
+                if (_plates[i].Owner == foe) return _plates[i];
+            return null;
+        }
+
+        HpPlate BuildPlate(Duelist foe)
+        {
+            const float w = 150f, h = 16f;
+            var root = new GameObject("HpBar");
+            root.transform.SetParent(transform, false);
+            var rt = root.AddComponent<RectTransform>();
+            rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.sizeDelta = new Vector2(w, h);
+            if (TryWorldPoint(foe.View.PopupAnchor, out var local))
+                rt.anchoredPosition = local + new Vector2(0f, -36f);
+            var bg = root.AddComponent<Image>();
+            bg.color = new Color(0.08f, 0.06f, 0.05f, 0.92f);
+            bg.raycastTarget = false;
+
+            var fillGo = new GameObject("Fill");
+            fillGo.transform.SetParent(root.transform, false);
+            var fr = fillGo.AddComponent<RectTransform>();
+            fr.anchorMin = fr.anchorMax = new Vector2(0f, 0.5f);
+            fr.pivot = new Vector2(0f, 0.5f);
+            fr.anchoredPosition = new Vector2(2f, 0f);
+            fr.sizeDelta = new Vector2(w - 4f, h - 4f);
+            var fill = fillGo.AddComponent<Image>();
+            fill.color = new Color(0.72f, 0.16f, 0.14f, 1f);
+            fill.raycastTarget = false;
+
+            return new HpPlate { Owner = foe, Root = root, Fill = fr };
+        }
+
+        static void SetFill(HpPlate plate, int hp, int max)
+        {
+            float inner = 146f;
+            float t = max <= 0 ? 0f : Mathf.Clamp01(hp / (float)max);
+            plate.Fill.sizeDelta = new Vector2(inner * t, plate.Fill.sizeDelta.y);
+        }
+
+        bool TryWorldPoint(Vector3 world, out Vector2 local)
+        {
+            local = Vector2.zero;
+            var cam = Camera.main;
+            if (cam == null) return false;
+            Vector3 screen = cam.WorldToScreenPoint(world);
+            return RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                (RectTransform)transform, screen, null, out local);
         }
 
         public void ShowBang()

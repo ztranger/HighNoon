@@ -9,6 +9,7 @@ namespace HighNoon
         public RectTransform Root { get; private set; }
 
         Text _name;
+        Text _damage;
         Image _icon;
         Action _onChanged;
 
@@ -30,6 +31,7 @@ namespace HighNoon
             _icon.preserveAspect = true;
 
             _name = ui.Text(root, "WName", "REVOLVER", 56, new Vector2(0.72f, 0.58f), Vector2.zero, 640, 90, UiBuild.Gold, FontStyle.Bold);
+            _damage = ui.Text(root, "WDmg", "DAMAGE  1", 36, new Vector2(0.72f, 0.50f), Vector2.zero, 640, 56, new Color(0.95f, 0.82f, 0.55f), FontStyle.Bold);
 
             var prev = ui.Button(root, "GunPrev", "<", new Vector2(0.72f, 0.38f), new Vector2(-180f, 0f), 120, 120, 56, UiBuild.Normal, out _);
             var next = ui.Button(root, "GunNext", ">", new Vector2(0.72f, 0.38f), new Vector2(180f, 0f), 120, 120, 56, UiBuild.Normal, out _);
@@ -44,6 +46,7 @@ namespace HighNoon
         {
             var w = Weapons.Selected;
             if (_name != null) _name.text = w.Name;
+            if (_damage != null) _damage.text = $"DAMAGE  {w.Damage}";
             if (_icon != null) _icon.sprite = WeaponArt.For(GameSettings.SelectedWeapon);
         }
 

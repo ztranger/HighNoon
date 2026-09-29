@@ -2,15 +2,18 @@ using UnityEngine;
 
 namespace HighNoon
 {
-    /// <summary>One selectable weapon: a display name plus filename hints that pick its shot
-    /// clips from the <c>Resources/Audio/Shots</c> library. (For now a weapon = its gunshot;
-    /// visuals/stats can hang off this later.)</summary>
+    /// <summary>One selectable weapon: a display name, how much of a foe's reserve one clean
+    /// hit removes, and filename hints that pick its shot clips from <c>Resources/Audio/Shots</c>.</summary>
     public class WeaponDef
     {
         public string Key;       // stable id for saving the selection
         public string Name;      // shown in the menu
+        public int Damage;       // reserve removed by one green hit (Volley / Sync)
         public string[] Match;   // lower-case filename substrings that belong to this weapon
-        public WeaponDef(string key, string name, params string[] match) { Key = key; Name = name; Match = match; }
+        public WeaponDef(string key, string name, int damage, params string[] match)
+        {
+            Key = key; Name = name; Damage = Mathf.Max(1, damage); Match = match;
+        }
     }
 
     /// <summary>The weapon roster (maps to the files the player dropped in <c>Shots/</c>).</summary>
@@ -18,11 +21,11 @@ namespace HighNoon
     {
         public static readonly WeaponDef[] All =
         {
-            new WeaponDef("revolver",  "REVOLVER",     "pistol", "heathers"),
-            new WeaponDef("deagle",    "DESERT EAGLE", "eagle"),
-            new WeaponDef("shotgun",   "SHOTGUN",      "shotgun"),
-            new WeaponDef("sniper",    "SNIPER",       "sniper"),
-            new WeaponDef("steampunk", "STEAMPUNK",    "steampunk"),
+            new WeaponDef("revolver",  "REVOLVER",     1, "pistol", "heathers"),
+            new WeaponDef("deagle",    "DESERT EAGLE", 2, "eagle"),
+            new WeaponDef("shotgun",   "SHOTGUN",      3, "shotgun"),
+            new WeaponDef("sniper",    "SNIPER",       4, "sniper"),
+            new WeaponDef("steampunk", "STEAMPUNK",    2, "steampunk"),
         };
 
         public static int Count => All.Length;

@@ -9,7 +9,8 @@ namespace HighNoon
 {
     /// <summary>
     /// Assembles a duel scene at runtime: arena background, camera, HUD, audio, and the
-    /// duelists for the chosen mode (PvP = 1 lane, Coop = 2v2 across two lanes).
+    /// duelists for the chosen mode (PvP = 1 lane, Coop = 2v2 across two lanes, Volley = one
+    /// human against 2–3 foes on the right).
     /// </summary>
     public class DuelBootstrap : MonoBehaviour
     {
@@ -23,6 +24,12 @@ namespace HighNoon
 
         [Tooltip("Duel type used when 'useMatchSettings' is off (direct-scene testing).")]
         public DuelType manualDuelType = DuelType.Reaction;
+
+        [Tooltip("Volley foe count when 'useMatchSettings' is off. Clamped to 2–3.")]
+        public int manualVolleyOpponents = 3;
+
+        [Tooltip("Sync foe count when 'useMatchSettings' is off. Even, 2 or 4. Shots per hand = count / 2.")]
+        public int manualSyncOpponents = 2;
 
         [Header("Configs (optional — runtime defaults created if empty)")]
         public DuelConfig duelConfig;
@@ -92,7 +99,16 @@ namespace HighNoon
             audio.Setup();
 
             bool coop = useMatchSettings && MatchSettings.Mode == GameMode.Coop;
-            var duelists = pve ? BuildPve() : coop ? BuildCoop() : BuildPvp();
+            DuelType type = useMatchSettings ? MatchSettings.Type : manualDuelType;
+            // Volley and Sync are stage types. A campaign duel leaves them on MatchSettings;
+            // PvP/Coop only play Reaction or Timing.
+            if (useMatchSettings && !pve && type != DuelType.Reaction && type != DuelType.Timing)
+                type = DuelType.Timing;
+            var duelists = type == DuelType.Volley ? BuildVolley(pve)
+                : type == DuelType.Sync ? BuildSync(pve)
+                : pve ? BuildPve()
+                : coop ? BuildCoop()
+                : BuildPvp();
 
             var manager = new GameObject("DuelManager").AddComponent<DuelManager>();
             manager.Config = duelConfig;
@@ -100,11 +116,14 @@ namespace HighNoon
             manager.Audio = audio;
             manager.Shake = _shake;
             manager.PveMode = pve;
-            manager.Type = useMatchSettings ? MatchSettings.Type : manualDuelType;
+            manager.Type = type;
             manager.Duelists = duelists;
             if (pve)
             {
-                string tag = MatchSettings.Players == PvPPlayers.TwoPlayers ? "CO-OP" : "SOLO";
+                // Volley and Sync are one gunslinger — the 2-player toggle does not add a partner.
+                string tag = type == DuelType.Volley ? "VOLLEY"
+                    : type == DuelType.Sync ? "SYNC"
+                    : MatchSettings.Players == PvPPlayers.TwoPlayers ? "CO-OP" : "SOLO";
                 hud.SetPveStatus($"CH{Campaign.Chapter + 1} · {Campaign.Stage + 1}/{Campaign.CurrentChapter.Stages.Length}   ·   {Campaign.CurrentStage.Title}   ·   LIVES {Campaign.Lives}   ·   {tag}");
             }
 
@@ -130,6 +149,87 @@ namespace HighNoon
             {
                 manager.StartDuel();
             }
+        }
+
+        /// <summary>
+        /// One human on the left, <see cref="Volley.FoeCount"/> foes on the right.
+        /// Kill order is list order: front of the line first. PvE reads the stage; a direct
+        /// scene play uses <see cref="manualVolleyOpponents"/>.
+        /// </summary>
+        List<Duelist> BuildVolley(bool pve)
+        {
+            int n = Volley.FoeCount(pve ? Campaign.CurrentStage.Opponents : manualVolleyOpponents);
+            string title = pve ? Campaign.CurrentStage.Title : "GUNMAN";
+            var leader = pve ? (Campaign.CurrentStage.Look ?? CowboyLook.Enemy()) : CowboyLook.Enemy();
+
+            var list = new List<Duelist>
+            {
+                MakeDuelist(DuelSide.Bottom, 0, SoloLeft, false, CowboyLook.Player(), "YOU", LeftHalf, Key.S),
+            };
+            for (int i = 0; i < n; i++)
+            {
+                list.Add(MakeDuelist(
+                    DuelSide.Top, i, VolleySpot(i, n), true,
+                    VolleyLook(leader, i), $"{title} {i + 1}", RightHalf, Key.None));
+            }
+            return list;
+        }
+
+        /// <summary>Front (index 0) is shot first. Bootstrap y is a depth stagger, see <see cref="DuelistView"/>.</summary>
+        static Vector2 VolleySpot(int index, int count)
+        {
+            if (count <= 2)
+                return index == 0 ? new Vector2(4.6f, -2.2f) : new Vector2(5.8f, 2.2f);
+            if (count >= 4)
+            {
+                switch (index)
+                {
+                    case 0: return new Vector2(4.0f, -3.4f);
+                    case 1: return new Vector2(5.1f, -1.0f);
+                    case 2: return new Vector2(6.0f, 1.4f);
+                    default: return new Vector2(6.9f, 3.8f);
+                }
+            }
+            switch (index)
+            {
+                case 0: return new Vector2(4.2f, -2.8f);
+                case 1: return new Vector2(5.4f, 0.2f);
+                default: return new Vector2(6.4f, 3.2f);
+            }
+        }
+
+        /// <summary>Leader keeps the stage look. Each further foe steps hat/chest and, from the third, a different illustration.</summary>
+        static CowboyLook VolleyLook(CowboyLook leader, int index)
+        {
+            var look = leader ?? CowboyLook.Enemy();
+            for (int i = 0; i < index; i++)
+                look = CowboyLook.Partner(look);
+            if (index == 2) look.CharacterId = "dusty_hart";
+            else if (index >= 3) look.CharacterId = "rio_vela";
+            return look;
+        }
+
+        /// <summary>
+        /// One human and an even line of foes. Left pistol shoots the even slots (0, then 2),
+        /// right pistol the odd slots (1, then 3). PvE reads the stage; a direct scene uses
+        /// <see cref="manualSyncOpponents"/>.
+        /// </summary>
+        List<Duelist> BuildSync(bool pve)
+        {
+            int n = SyncRules.FoeCount(pve ? Campaign.CurrentStage.Opponents : manualSyncOpponents);
+            string title = pve ? Campaign.CurrentStage.Title : "GUNMAN";
+            var leader = pve ? (Campaign.CurrentStage.Look ?? CowboyLook.Enemy()) : CowboyLook.Enemy();
+            var list = new List<Duelist>
+            {
+                MakeDuelist(DuelSide.Bottom, 0, SoloLeft, false, CowboyLook.Player(), "YOU", LeftHalf, Key.S),
+            };
+            for (int i = 0; i < n; i++)
+            {
+                list.Add(MakeDuelist(
+                    DuelSide.Top, i, VolleySpot(i, n), true,
+                    VolleyLook(leader, i), $"{title} {i + 1}", RightHalf, Key.None));
+            }
+            return list;
         }
 
         List<Duelist> BuildPve()

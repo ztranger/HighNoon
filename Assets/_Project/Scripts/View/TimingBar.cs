@@ -14,6 +14,9 @@ namespace HighNoon
         RectTransform _self;
         RectTransform _pointer;
         Image _pointerImg;
+        Image _track;
+        Image _frame;
+        Vector2 _restPos;
         float _trackW;
         float _cur;
 
@@ -29,6 +32,10 @@ namespace HighNoon
         static readonly Color PointerCol = new Color(1f, 0.96f, 0.85f, 1f);
         static readonly Color HitCol     = new Color(0.40f, 1f, 0.42f, 1f);
         static readonly Color MissCol    = new Color(1f, 0.42f, 0.36f, 1f);
+        static readonly Color TrackHot   = new Color(0.72f, 0.08f, 0.06f, 0.96f);
+        static readonly Color FrameHot   = new Color(0.42f, 0.04f, 0.03f, 1f);
+        const float ShakeTail = 1.15f; // seconds at the end of the window
+        const float ShakeAmp = 7f;     // pixels, whole bar, so the green and the pointer stay aligned
 
         public void Build(Transform parent, Font font, bool topSide, Vector2 anchoredPos,
                           float width, float height, float greenCenter, float greenHalf, string label)
@@ -43,20 +50,21 @@ namespace HighNoon
             _self.pivot = new Vector2(0.5f, 0.5f);
             _self.sizeDelta = new Vector2(width, height);
             _self.anchoredPosition = anchoredPos;
+            _restPos = anchoredPos;
             if (topSide) _self.localRotation = Quaternion.Euler(0f, 0f, 180f);
 
             // Frame (slightly larger, dark) behind the track.
-            var frame = NewImage("Frame", _self, FrameCol);
-            Stretch(frame.rectTransform, -6f, -6f);
+            _frame = NewImage("Frame", _self, FrameCol);
+            Stretch(_frame.rectTransform, -6f, -6f);
 
             // Track.
-            var track = NewImage("Track", _self, TrackCol);
-            Stretch(track.rectTransform, 0f, 0f);
+            _track = NewImage("Track", _self, TrackCol);
+            Stretch(_track.rectTransform, 0f, 0f);
 
             // Green target zone.
             float gx = (GreenCenter - 0.5f) * width;
             float gw = GreenHalf * 2f * width;
-            var green = NewImage("Green", track.rectTransform, GreenCol);
+            var green = NewImage("Green", _track.rectTransform, GreenCol);
             Place(green.rectTransform, new Vector2(gx, 0f), new Vector2(gw, height));
 
             // Bright core line at the exact green centre.
@@ -64,7 +72,7 @@ namespace HighNoon
             Place(core.rectTransform, Vector2.zero, new Vector2(Mathf.Max(6f, gw * 0.14f), height));
 
             // Pointer (sticks out above/below the track).
-            _pointerImg = NewImage("Pointer", track.rectTransform, PointerCol);
+            _pointerImg = NewImage("Pointer", _track.rectTransform, PointerCol);
             _pointer = _pointerImg.rectTransform;
             Place(_pointer, Vector2.zero, new Vector2(10f, height + 20f));
             SetSweepX(0f);
@@ -96,6 +104,32 @@ namespace HighNoon
             _pointer.anchoredPosition = new Vector2((_cur - 0.5f) * _trackW, 0f);
         }
 
+        /// <summary>
+        /// Heat the track from its neutral brown toward red as the window runs out,
+        /// and jitter the whole bar in the last <see cref="ShakeTail"/> seconds.
+        /// The green zone moves with the pointer, so the shake does not change the hit.
+        /// </summary>
+        public void SetTimeLeft(float secondsLeft, float windowSeconds)
+        {
+            if (Locked || _self == null) return;
+            float span = Mathf.Max(0.01f, windowSeconds);
+            float gone = 1f - Mathf.Clamp01(secondsLeft / span);
+            float heat = gone * gone;
+            if (_track != null) _track.color = Color.Lerp(TrackCol, TrackHot, heat);
+            if (_frame != null) _frame.color = Color.Lerp(FrameCol, FrameHot, heat);
+
+            if (secondsLeft >= ShakeTail)
+            {
+                _self.anchoredPosition = _restPos;
+                return;
+            }
+            float shake = 1f - Mathf.Clamp01(secondsLeft / ShakeTail);
+            float amp = shake * shake * ShakeAmp;
+            float wobble = Mathf.Sin(Time.time * 46f) * amp;
+            float wobbleY = Mathf.Sin(Time.time * 63f) * amp * 0.4f;
+            _self.anchoredPosition = _restPos + new Vector2(wobble, wobbleY);
+        }
+
         /// <summary>Freeze the pointer at <paramref name="x01"/> and colour it hit/miss.</summary>
         public void Lock(float x01)
         {
@@ -104,6 +138,7 @@ namespace HighNoon
             _cur = LockedX;
             _pointer.anchoredPosition = new Vector2((_cur - 0.5f) * _trackW, 0f);
             _pointerImg.color = IsHit(LockedX) ? HitCol : MissCol;
+            _self.anchoredPosition = _restPos;
         }
 
         public bool IsHit(float x01) => Mathf.Abs(x01 - GreenCenter) <= GreenHalf;

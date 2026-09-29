@@ -12,12 +12,41 @@ namespace HighNoon
         public DialogLine(Speaker speaker, string text) { Speaker = speaker; Text = text; }
     }
 
-    /// <summary>One PvE encounter (a node on a chapter map): arena + opponent + difficulty + intro banter.</summary>
+    /// <summary>One PvE encounter (a node on a chapter map): arena + opponent + difficulty + how the duel is fought.</summary>
     public class StageDef
     {
         public string Title;
         public string Arena;
         public Difficulty Difficulty;
+
+        /// <summary>
+        /// Rules for this mission. Defaults to <see cref="DuelType.Timing"/>.
+        /// Set <see cref="DuelType.Reaction"/> for a quick-draw (the final boss),
+        /// <see cref="DuelType.Volley"/> for one gunslinger against <see cref="Opponents"/> foes, and
+        /// <see cref="DuelType.Sync"/> for two bars at once. <see cref="Opponents"/> is the line
+        /// (even, 2 or 4): each pistol fires <c>Opponents / 2</c> shots.
+        /// </summary>
+        public DuelType Type = DuelType.Timing;
+
+        /// <summary>
+        /// How many foes stand on the right. Volley: clamped to 2–3 by <see cref="Volley.FoeCount"/>
+        /// (0 means a full line of 3). Each window repeats until that foe's reserve is empty.
+        /// Sync: even 2 or 4 via <see cref="SyncRules.FoeCount"/>
+        /// (0 means 2). Two foes = one shot per pistol; four foes = two shots per pistol.
+        /// Ignored for Reaction and Timing.
+        /// </summary>
+        public int Opponents;
+
+        /// <summary>
+        /// How many points of reserve each foe on this stage has. 1 (the default) dies to any
+        /// single hit. Higher values need several green taps in Volley and Sync; Reaction and
+        /// Timing ignore it. A health bar shows only when this is more than the player's weapon damage.
+        /// </summary>
+        public int Hp = 1;
+
+        /// <summary>Armor the player loses on a miss against these foes. Default 1. Volley and Sync only.</summary>
+        public int Strike = 1;
+
         public CowboyLook Look;
         public DialogLine[] Intro;
     }
@@ -62,6 +91,7 @@ namespace HighNoon
                     new StageDef
                     {
                         Title = "The Saloon Singer", Arena = "Dusty Town", Difficulty = Difficulty.Easy,
+                        Type = DuelType.Sync, Opponents = 2,
                         Look = new CowboyLook
                         {
                             Shirt = new Color(0.72f, 0.18f, 0.22f),
@@ -72,12 +102,13 @@ namespace HighNoon
                         {
                             new DialogLine(Speaker.Opponent, "This saloon's mine. Turn around, cowboy."),
                             new DialogLine(Speaker.You,      "I don't turn around."),
-                            new DialogLine(Speaker.Opponent, "Then reach for it."),
+                            new DialogLine(Speaker.Opponent, "Left and right. Miss either one and you're done."),
                         },
                     },
                     new StageDef
                     {
                         Title = "Canyon Ambush", Arena = "Red Canyon", Difficulty = Difficulty.Normal,
+                        Type = DuelType.Volley, Opponents = 3,
                         Look = new CowboyLook
                         {
                             Shirt = new Color(0.72f, 0.58f, 0.38f),
@@ -87,7 +118,8 @@ namespace HighNoon
                         Intro = new[]
                         {
                             new DialogLine(Speaker.Opponent, "Should've watched the ridgeline."),
-                            new DialogLine(Speaker.You,      "Should've picked a bigger gang."),
+                            new DialogLine(Speaker.You,      "Three of you. Still not enough."),
+                            new DialogLine(Speaker.Opponent, "Then drop every one of us. If your hand can."),
                         },
                     },
                 },
@@ -117,6 +149,7 @@ namespace HighNoon
                     new StageDef
                     {
                         Title = "The Headliner", Arena = "Green Valley", Difficulty = Difficulty.Normal,
+                        Type = DuelType.Sync, Opponents = 4, Hp = 3, Strike = 1,
                         Look = new CowboyLook
                         {
                             Shirt = new Color(0.72f, 0.22f, 0.18f),
@@ -125,9 +158,9 @@ namespace HighNoon
                         },
                         Intro = new[]
                         {
-                            new DialogLine(Speaker.Opponent, "Tonight's bill says one gunslinger. That's you."),
-                            new DialogLine(Speaker.You,      "I don't do encores."),
-                            new DialogLine(Speaker.Opponent, "Good. I only need one shot."),
+                            new DialogLine(Speaker.Opponent, "Four of us. And you've only got two hands."),
+                            new DialogLine(Speaker.You,      "Each hand's good for two."),
+                            new DialogLine(Speaker.Opponent, "Then don't let either one slip."),
                         },
                     },
                     new StageDef
@@ -254,6 +287,7 @@ namespace HighNoon
                     new StageDef
                     {
                         Title = "The Prima", Arena = "Gallows Hill", Difficulty = Difficulty.Hard,
+                        Type = DuelType.Volley, Opponents = 2, Hp = 6, Strike = 1,
                         Look = new CowboyLook
                         {
                             Shirt = new Color(0.18f, 0.28f, 0.62f),
@@ -262,15 +296,15 @@ namespace HighNoon
                         },
                         Intro = new[]
                         {
-                            new DialogLine(Speaker.Opponent, "Gallows Hill keeps a box seat. Front row."),
-                            new DialogLine(Speaker.You,      "I didn't buy a ticket."),
-                            new DialogLine(Speaker.Opponent, "The rope still gets an encore."),
+                            new DialogLine(Speaker.Opponent, "I've buried better men than you. And this vest has stopped worse."),
+                            new DialogLine(Speaker.You,      "Then I'll keep shootin' till it doesn't."),
                         },
                     },
                     new StageDef
                     {
-                        // Final stage of the final chapter → the BOSS: a real Reaction quick-draw.
+                        // Final stage of the final chapter → the BOSS. Type is data, not "because it is last".
                         Title = "Black Jack", Arena = "Devil's Crossroads", Difficulty = Difficulty.Hard,
+                        Type = DuelType.Reaction,
                         Look = new CowboyLook { Shirt = new Color(0.12f, 0.11f, 0.13f), HatColor = new Color(0.06f, 0.06f, 0.07f), Skin = new Color(0.82f, 0.78f, 0.72f), Accent = new Color(0.70f, 0.10f, 0.10f), HatType = HatStyle.Wide, Chest = Accessory.Poncho, Facial = FacialHair.Beard },
                         Intro = new[]
                         {
@@ -392,8 +426,7 @@ namespace HighNoon
             MatchSettings.Mode = GameMode.PvE;
             MatchSettings.ForcedArena = CurrentStage.Arena;
             MatchSettings.BotDifficulty = CurrentStage.Difficulty;
-            // Every stage is a timing "sweet spot" test — except the final boss, a real quick-draw.
-            MatchSettings.Type = IsFinalStage ? DuelType.Reaction : DuelType.Timing;
+            MatchSettings.Type = CurrentStage.Type;
         }
     }
 }

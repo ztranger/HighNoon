@@ -1,11 +1,13 @@
 using System;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace HighNoon
 {
     public sealed class StatsScreen
     {
         public RectTransform Root { get; private set; }
+        Text _armor;
 
         public void Build(RectTransform root, UiBuild ui, Action back)
         {
@@ -20,7 +22,23 @@ namespace HighNoon
                 ? $"CH {Records.FurthestChapter + 1}  ·  {Records.FurthestStage + 1}" : "—", new Vector2(420f, -180f));
 
             if (!Records.HasReaction && !Records.HasAccuracy && Records.Completions == 0)
-                ui.Text(root, "Empty", "No records yet — go make history.", 32, new Vector2(0.5f, 0.12f), Vector2.zero, 900, 56, new Color(0.7f, 0.64f, 0.5f), FontStyle.Italic);
+                ui.Text(root, "Empty", "No records yet — go make history.", 32, new Vector2(0.5f, 0.16f), Vector2.zero, 900, 56, new Color(0.7f, 0.64f, 0.5f), FontStyle.Italic);
+
+            _armor = ui.Text(root, "ArmorV", ArmorLine(), 40, new Vector2(0.5f, 0.22f), Vector2.zero, 800, 60, UiBuild.Gold, FontStyle.Bold);
+            var reinforce = ui.Button(root, "ArmorUp", "REINFORCE", new Vector2(0.5f, 0.14f), Vector2.zero, 420, 90, 36, UiBuild.Normal, out _);
+            reinforce.onClick.AddListener(Reinforce);
+        }
+
+        void Reinforce()
+        {
+            if (!GameSettings.UpgradeArmor()) return;
+            if (_armor != null) _armor.text = ArmorLine();
+        }
+
+        static string ArmorLine()
+        {
+            int n = GameSettings.ArmorMax;
+            return n >= GameSettings.ArmorCap ? $"ARMOR  {n}  ·  FULL" : $"ARMOR  {n}  ·  tap reinforce";
         }
 
         static void Cell(UiBuild ui, RectTransform p, string label, string value, Vector2 pos)

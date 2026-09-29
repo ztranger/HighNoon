@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace HighNoon
 {
@@ -12,6 +13,8 @@ namespace HighNoon
     ///
     /// 1v1 = a single lane. 2v2 = two lanes resolved in parallel; if each side wins one
     /// lane, the two survivors duel again (tie-break round) until one side owns the match.
+    /// Volley skips lanes: one human, several foes, one timed tap each.
+    /// Sync skips lanes too: one human, two foes, two bars at once.
     /// </summary>
     public class DuelManager : MonoBehaviour
     {
@@ -20,7 +23,7 @@ namespace HighNoon
         public DuelAudio Audio;
         public CameraShake Shake;
         public bool PveMode;
-        public DuelType Type = DuelType.Reaction; // Reaction (quick-draw) or Timing (sweet-spot bar)
+        public DuelType Type = DuelType.Reaction; // Reaction, Timing, Volley, or Sync
         public bool SkipFirstIntro; // set when a pre-duel dialog already put the duelists on the field
         public List<Duelist> Duelists = new List<Duelist>();
 
@@ -33,7 +36,10 @@ namespace HighNoon
             StopAllCoroutines();
             Time.timeScale = 1f;
             foreach (var d in Duelists) d.Lane = d.HomeLane; // undo any tie-break lane change from a prior match (fixes rematch pairing)
-            StartCoroutine(Type == DuelType.Timing ? RunTimingMatch() : RunMatch());
+            if (Type == DuelType.Volley) StartCoroutine(RunVolleyMatch());
+            else if (Type == DuelType.Sync) StartCoroutine(RunSyncMatch());
+            else if (Type == DuelType.Timing) StartCoroutine(RunTimingMatch());
+            else StartCoroutine(RunMatch());
         }
 
         IEnumerator RunMatch()
@@ -384,6 +390,7 @@ namespace HighNoon
                 {
                     var d = kv.Key; var bar = kv.Value;
                     if (bar.Locked) continue;
+                    bar.SetTimeLeft(maxAim - t, maxAim);
                     if (d.Kind == DuelistKind.Human)
                     {
                         d.Input.Tick(now);
@@ -542,6 +549,401 @@ namespace HighNoon
                 default:
                     return Random.value < 0.65f ? Random.Range(0f, greenHalf) : Random.Range(greenHalf, greenHalf + 0.12f);
             }
+        }
+
+        // ===================== Volley (one human, N timed taps) =====================
+
+        /// <summary>
+        /// PvE sequence: after the shared intro, each foe gets their own sweet-spot window.
+        /// A green tap drops that foe immediately. A miss or a silent window ends the mission —
+        /// the survivors shoot and the player drops. No lanes, no tie-break.
+        /// Campaign still hears only "did the player side win?" via <see cref="ShowPveResult"/>.
+        /// </summary>
+        IEnumerator RunVolleyMatch()
+        {
+            foreach (var d in Duelists) d.ResetRound();
+            var active = new List<Duelist>(Duelists);
+            yield return StartCoroutine(RunVolleyRound(active, !SkipFirstIntro));
+
+            Duelist human = null;
+            foreach (var d in active)
+                if (d.Kind == DuelistKind.Human) { human = d; break; }
+            bool playerWon = human != null && human.Outcome == DuelOutcome.Won;
+
+            Phase = DuelPhase.Result;
+            if (PveMode) ShowPveResult(playerWon);
+            else Hud.ShowResult(playerWon ? "YOU WIN!" : "YOU LOSE", "REMATCH", OnRematch, "MENU", DuelFlow.Menu);
+        }
+
+        IEnumerator RunVolleyRound(List<Duelist> active, bool doIntro)
+        {
+            Hud.HideAll();
+            foreach (var d in active) d.ResetRound();
+            yield return StartCoroutine(PlayIntroAndStance(active, doIntro));
+
+            Duelist human = null;
+            var foes = new List<Duelist>();
+            foreach (var d in active)
+            {
+                if (d.Kind == DuelistKind.Human && human == null) human = d;
+                else if (d.Kind == DuelistKind.Bot) foes.Add(d);
+            }
+
+            if (human == null || foes.Count == 0)
+            {
+                if (human != null) human.Outcome = DuelOutcome.Lost;
+                yield break;
+            }
+
+            PrepareVitality(active);
+            TimingTuning(out float greenHalf, out float sweepSpeed);
+            Audio.StartTension();
+            Phase = DuelPhase.Tension;
+            Hud.ShowArmor(human.Hp, human.MaxHp);
+            int damage = ShotDamage(human);
+
+            bool cleared = true;
+            bool newAim = false;
+            for (int i = 0; i < foes.Count && cleared; i++)
+            {
+                var foe = foes[i];
+                Hud.ShowFoeHealth(foe, damage);
+                while (foe.Outcome != DuelOutcome.Lost && cleared)
+                {
+                    float gc = Random.Range(greenHalf + 0.08f, 1f - greenHalf - 0.08f);
+                    var bar = Hud.AddTimingBar(false, BarPosition(DuelSide.Bottom, 0, 1), 720f, 84f, gc, greenHalf, foe.Label);
+
+                    // HumanDuelInput latches the first tap. Re-arm so the previous beat cannot count.
+                    human.ShotFx = false;
+                    human.Input.ResetInput();
+                    human.Input.Arm();
+
+                    float t = 0f;
+                    bool tapped = false;
+                    while (t < Volley.BeatSeconds)
+                    {
+                        t += Time.deltaTime;
+                        float sweepX = Mathf.PingPong(t * sweepSpeed, 1f);
+                        bar.SetTimeLeft(Volley.BeatSeconds - t, Volley.BeatSeconds);
+                        double now = Time.realtimeSinceStartupAsDouble;
+                        human.Input.Tick(now);
+                        if (human.Input.HasFired)
+                        {
+                            tapped = true;
+                            bar.Lock(sweepX);
+                            PlayShootFx(human);
+                            break;
+                        }
+                        bar.SetSweepX(sweepX);
+                        yield return null;
+                    }
+
+                    if (!tapped) LockOutside(bar);
+
+                    bool hit = bar.IsHit(bar.LockedX);
+                    ShowAim(bar, foe);
+                    if (hit && Records.ReportAccuracy(1f - bar.Error(bar.LockedX)))
+                        newAim = true;
+
+                    if (hit) HurtFoe(foe, damage);
+                    else if (SpendArmor(human, foe.Strike))
+                    {
+                        cleared = false;
+                        DownPlayer(human, foes);
+                    }
+
+                    human.Input.ResetInput();
+                    yield return new WaitForSeconds(Volley.BetweenBeats);
+                    if (bar != null) Destroy(bar.gameObject);
+                }
+            }
+
+            Audio.StopTension();
+            if (cleared) human.Outcome = DuelOutcome.Won;
+            if (newAim) Hud.ShowBanner("NEW BEST AIM!", new Color(1f, 0.85f, 0.3f));
+
+            Phase = DuelPhase.Resolved;
+            yield return StartCoroutine(ShowRoundResults(active));
+        }
+
+        // ===================== Sync (two bars, two hands) =====================
+
+        /// <summary>
+        /// Two sweet-spot bars at once — one pistol each. A green tap removes weapon damage from
+        /// that foe and drops them at 0, even if the other hand misses. A miss makes that foe
+        /// fire immediately and spends armor; the player drops in that same moment when armor
+        /// hits 0. Each pistol then moves to its next foe (<see cref="SyncRules.ShotsPerHand"/>).
+        /// </summary>
+        IEnumerator RunSyncMatch()
+        {
+            foreach (var d in Duelists) d.ResetRound();
+            var active = new List<Duelist>(Duelists);
+            yield return StartCoroutine(RunSyncRound(active, !SkipFirstIntro));
+
+            Duelist human = null;
+            foreach (var d in active)
+                if (d.Kind == DuelistKind.Human) { human = d; break; }
+            bool playerWon = human != null && human.Outcome == DuelOutcome.Won;
+
+            Phase = DuelPhase.Result;
+            if (PveMode) ShowPveResult(playerWon);
+            else Hud.ShowResult(playerWon ? "YOU WIN!" : "YOU LOSE", "REMATCH", OnRematch, "MENU", DuelFlow.Menu);
+        }
+
+        IEnumerator RunSyncRound(List<Duelist> active, bool doIntro)
+        {
+            Hud.HideAll();
+            foreach (var d in active) d.ResetRound();
+            yield return StartCoroutine(PlayIntroAndStance(active, doIntro));
+
+            Duelist human = null;
+            var foes = new List<Duelist>();
+            foreach (var d in active)
+            {
+                if (d.Kind == DuelistKind.Human && human == null) human = d;
+                else if (d.Kind == DuelistKind.Bot) foes.Add(d);
+            }
+
+            if (human == null || foes.Count < SyncRules.Hands)
+            {
+                if (human != null) human.Outcome = DuelOutcome.Lost;
+                yield break;
+            }
+
+            PrepareVitality(active);
+            TimingTuning(out float greenHalf, out float sweepSpeed);
+            float phase = greenHalf * SyncRules.PhaseInGreen;
+            const float center = 0.5f;
+            int shots = foes.Count / SyncRules.Hands;
+            int damage = ShotDamage(human);
+            Hud.ShowArmor(human.Hp, human.MaxHp);
+            for (int i = 0; i < foes.Count; i++) Hud.ShowFoeHealth(foes[i], damage);
+
+            // Two one-shot listeners, re-armed every wave. The duelist's own Input stays idle
+            // so a single latch cannot swallow both hands.
+            var leftInput = new HumanDuelInput(new Rect(0f, 0f, 0.5f, 1f), Key.S);
+            var rightInput = new HumanDuelInput(new Rect(0.5f, 0f, 0.5f, 1f), Key.W);
+
+            Audio.StartTension();
+            Phase = DuelPhase.Tension;
+
+            bool failed = false;
+            float worst = 0f;
+            bool scored = false;
+            for (int wave = 0; wave < shots && !failed; wave++)
+            {
+                var leftFoe = foes[wave * 2];
+                var rightFoe = foes[wave * 2 + 1];
+                while (!failed
+                    && (leftFoe.Outcome != DuelOutcome.Lost || rightFoe.Outcome != DuelOutcome.Lost))
+                {
+                    bool needL = leftFoe.Outcome != DuelOutcome.Lost;
+                    bool needR = rightFoe.Outcome != DuelOutcome.Lost;
+                    TimingBar leftBar = null, rightBar = null;
+                    if (needL)
+                        leftBar = Hud.AddTimingBar(false, BarPosition(DuelSide.Bottom, 0, 1), 720f, 84f, center, greenHalf, leftFoe.Label);
+                    if (needR)
+                        rightBar = Hud.AddTimingBar(false, BarPosition(DuelSide.Top, 0, 1), 720f, 84f, center, greenHalf, rightFoe.Label);
+
+                    leftInput.ResetInput();
+                    rightInput.ResetInput();
+                    if (needL) leftInput.Arm();
+                    if (needR) rightInput.Arm();
+
+                    bool leftTapped = !needL, rightTapped = !needR;
+                    float t = 0f;
+                    while (t < SyncRules.RoundSeconds && !(leftTapped && rightTapped) && !failed)
+                    {
+                        t += Time.deltaTime;
+                        float leftX = Mathf.PingPong(t * sweepSpeed, 1f);
+                        float rightX = Mathf.PingPong(t * sweepSpeed + phase, 1f);
+                        float secondsLeft = SyncRules.RoundSeconds - t;
+                        if (needL && !leftTapped) leftBar.SetTimeLeft(secondsLeft, SyncRules.RoundSeconds);
+                        if (needR && !rightTapped) rightBar.SetTimeLeft(secondsLeft, SyncRules.RoundSeconds);
+                        double now = Time.realtimeSinceStartupAsDouble;
+                        if (needL) leftInput.Tick(now);
+                        if (needR) rightInput.Tick(now);
+
+                        if (needL && !leftTapped && leftInput.HasFired)
+                        {
+                            leftTapped = true;
+                            leftBar.Lock(leftX);
+                            human.ShotFx = false;
+                            PlayShootFx(human);
+                            ShowAim(leftBar, leftFoe);
+                            if (!ResolveShot(human, leftFoe, leftBar, damage, foes, ref failed, ref worst, ref scored))
+                                break;
+                        }
+                        else if (needL && !leftTapped) leftBar.SetSweepX(leftX);
+
+                        if (needR && !rightTapped && rightInput.HasFired && !failed)
+                        {
+                            rightTapped = true;
+                            rightBar.Lock(rightX);
+                            human.ShotFx = false;
+                            PlayShootFx(human);
+                            ShowAim(rightBar, rightFoe);
+                            if (!ResolveShot(human, rightFoe, rightBar, damage, foes, ref failed, ref worst, ref scored))
+                                break;
+                        }
+                        else if (needR && !rightTapped) rightBar.SetSweepX(rightX);
+
+                        yield return null;
+                    }
+
+                    if (needL && !leftTapped && !failed)
+                    {
+                        LockOutside(leftBar);
+                        ShowAim(leftBar, leftFoe);
+                        ApplyMiss(human, leftFoe, foes, ref failed);
+                    }
+                    if (needR && !rightTapped && !failed)
+                    {
+                        LockOutside(rightBar);
+                        ShowAim(rightBar, rightFoe);
+                        ApplyMiss(human, rightFoe, foes, ref failed);
+                    }
+
+                    // A killing miss already fired. Don't hold the shot behind the beat pause.
+                    if (!failed) yield return new WaitForSeconds(Volley.BetweenBeats);
+                    if (leftBar != null) Destroy(leftBar.gameObject);
+                    if (rightBar != null) Destroy(rightBar.gameObject);
+                }
+            }
+
+            Audio.StopTension();
+            if (!failed)
+            {
+                human.Outcome = DuelOutcome.Won;
+                if (scored && Records.ReportAccuracy(1f - worst))
+                    Hud.ShowBanner("NEW BEST AIM!", new Color(1f, 0.85f, 0.3f));
+            }
+
+            Phase = DuelPhase.Resolved;
+            yield return StartCoroutine(ShowRoundResults(active));
+        }
+
+        /// <summary>Stage reserve on foes, saved armor on the player. Called after <see cref="Duelist.ResetRound"/>.</summary>
+        void PrepareVitality(List<Duelist> active)
+        {
+            int hp = 1, strike = 1;
+            if (PveMode)
+            {
+                hp = Mathf.Max(1, Campaign.CurrentStage.Hp);
+                strike = Mathf.Max(1, Campaign.CurrentStage.Strike);
+            }
+            int armor = Mathf.Max(1, GameSettings.ArmorMax);
+            foreach (var d in active)
+            {
+                if (d.Kind == DuelistKind.Human)
+                {
+                    d.MaxHp = armor;
+                    d.Hp = armor;
+                }
+                else
+                {
+                    d.MaxHp = hp;
+                    d.Hp = hp;
+                    d.Strike = strike;
+                }
+            }
+        }
+
+        static int ShotDamage(Duelist human)
+        {
+            return human != null && human.Weapon != null ? Mathf.Max(1, human.Weapon.Damage) : 1;
+        }
+
+        /// <summary>Remove weapon damage. Drops the foe when the reserve hits 0. Returns true if they fell.</summary>
+        bool HurtFoe(Duelist foe, int damage)
+        {
+            if (foe == null || foe.Outcome == DuelOutcome.Lost) return true;
+            foe.Hp = Mathf.Max(0, foe.Hp - Mathf.Max(1, damage));
+            Hud.ShowFoeHealth(foe, damage);
+            if (foe.Hp > 0) return false;
+            DropFoe(foe);
+            return true;
+        }
+
+        /// <summary>A miss. Returns true when armor is gone.</summary>
+        bool SpendArmor(Duelist human, int strike)
+        {
+            human.Hp = Mathf.Max(0, human.Hp - Mathf.Max(1, strike));
+            Hud.ShowArmor(human.Hp, human.MaxHp);
+            return human.Hp <= 0;
+        }
+
+        void DownPlayer(Duelist human, List<Duelist> foes)
+        {
+            for (int i = 0; i < foes.Count; i++)
+                if (foes[i].Outcome != DuelOutcome.Lost) PlayShootFx(foes[i]);
+            human.Outcome = DuelOutcome.Lost;
+            human.View.PlayDeath();
+            DeathFx();
+        }
+
+        /// <summary>Apply one locked bar: green deals damage, a miss spends armor. False = the player is down.</summary>
+        bool ResolveShot(Duelist human, Duelist foe, TimingBar bar, int damage, List<Duelist> foes,
+            ref bool failed, ref float worst, ref bool scored)
+        {
+            if (bar.IsHit(bar.LockedX))
+            {
+                float err = bar.Error(bar.LockedX);
+                if (!scored || err > worst) { worst = err; scored = true; }
+                HurtFoe(foe, damage);
+                return true;
+            }
+            return ApplyMiss(human, foe, foes, ref failed);
+        }
+
+        /// <summary>
+        /// The foe you missed fires in this same moment and armor ticks down.
+        /// False = that shot dropped the player.
+        /// </summary>
+        bool ApplyMiss(Duelist human, Duelist foe, List<Duelist> foes, ref bool failed)
+        {
+            if (foe != null && foe.Outcome != DuelOutcome.Lost)
+            {
+                foe.ShotFx = false;
+                PlayShootFx(foe);
+            }
+            if (SpendArmor(human, foe != null ? foe.Strike : 1))
+            {
+                failed = true;
+                DownPlayer(human, foes);
+                return false;
+            }
+            return true;
+        }
+
+        /// <summary>A green pistol shot that emptied the foe. The other hand can still be in the air.</summary>
+        void DropFoe(Duelist foe)
+        {
+            if (foe == null || foe.Outcome == DuelOutcome.Lost) return;
+            foe.Outcome = DuelOutcome.Lost;
+            foe.ShotFx = true;
+            foe.View.PlayDeath();
+            DeathFx();
+        }
+
+        /// <summary>HIT / MISS / PERFECT above the foe that bar was aimed at.</summary>
+        void ShowAim(TimingBar bar, Duelist foe)
+        {
+            bool hit = bar.IsHit(bar.LockedX);
+            bool perfect = hit && bar.Error(bar.LockedX) <= bar.GreenHalf * 0.28f;
+            string text = !hit ? "MISS" : perfect ? "PERFECT!" : "HIT";
+            Color col = !hit ? new Color(1f, 0.5f, 0.5f)
+                      : perfect ? new Color(1f, 0.9f, 0.35f)
+                      : new Color(0.3f, 1f, 0.3f);
+            Hud.ShowReactionAt(foe.View.PopupAnchor, text, col);
+        }
+
+        static void LockOutside(TimingBar bar)
+        {
+            float miss = bar.GreenCenter > 0.5f
+                ? Mathf.Clamp01(bar.GreenCenter - (bar.GreenHalf + 0.15f))
+                : Mathf.Clamp01(bar.GreenCenter + (bar.GreenHalf + 0.15f));
+            bar.Lock(miss);
         }
 
         static string ReactionText(Duelist d)

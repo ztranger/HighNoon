@@ -10,7 +10,12 @@ namespace HighNoon
         public IDuelInput Input;
         public DuelistView View;
         public string Label = "Cowboy";
-        public WeaponDef Weapon;      // gun sound this duelist fires (player = chosen, bot = default)
+        public WeaponDef Weapon;      // gun sound + damage (player = chosen, bot = default)
+
+        // In-duel reserve. Foes: stage Hp. Player: armor brought into the fight (refills each duel).
+        public int MaxHp = 1;
+        public int Hp = 1;
+        public int Strike = 1;        // armor a miss against this foe removes (bots)
 
         // Per-round result
         public DuelOutcome Outcome = DuelOutcome.None;

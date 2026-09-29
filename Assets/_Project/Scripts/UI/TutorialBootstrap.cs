@@ -141,6 +141,7 @@ namespace HighNoon
                     t += Time.deltaTime;
                     float x = Mathf.PingPong(t * 0.8f, 1f);
                     bar.SetSweepX(x);
+                    bar.SetTimeLeft(8f - t, 8f);
                     _tapLeft.Tick(Now);
                     if (_tapLeft.HasFired) { bar.Lock(x); tapped = true; break; }
                     yield return null;
