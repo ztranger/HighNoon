@@ -202,8 +202,10 @@ namespace HighNoon
         static CowboyLook VolleyLook(CowboyLook leader, int index)
         {
             var look = leader ?? CowboyLook.Enemy();
+            bool illustrated = !string.IsNullOrEmpty(look.CharacterId);
             for (int i = 0; i < index; i++)
                 look = CowboyLook.Partner(look);
+            if (!illustrated) return look;
             if (index == 2) look.CharacterId = "dusty_hart";
             else if (index >= 3) look.CharacterId = "rio_vela";
             return look;

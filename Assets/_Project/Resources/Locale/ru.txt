@@ -1,0 +1,61 @@
+# High Noon — Русский. Отсутствующие ключи берутся из en.txt.
+# Формат:  key = value   |   \n = перенос строки   |   {0} = аргумент string.Format
+# Первый черновик перевода — правится свободно.
+
+# --- Экран результата / поток ---
+result.rematch   = ЕЩЁ РАЗ
+result.menu      = МЕНЮ
+result.retry     = ЗАНОВО
+result.map       = КАРТА
+result.win       = ПОБЕДА!
+result.lose      = ПОРАЖЕНИЕ
+result.draw      = НИЧЬЯ
+result.wins      = {0} ПОБЕЖДАЕТ!
+result.teamwins  = КОМАНДА {0} ПОБЕЖДАЕТ!
+result.cleared   = ЭТАП ПРОЙДЕН!\nДалее: {0}
+result.died      = ТЫ УБИТ\nЖизней осталось: {0}
+
+# --- HUD дуэли ---
+duel.bang        = ПЛИ!
+duel.falsestart  = ФАЛЬСТАРТ
+duel.miss        = МИМО
+duel.hit         = ПОПАЛ
+duel.perfect     = В ЯБЛОЧКО!
+duel.reaction.ms = {0} мс
+hud.armor        = БРОНЯ {0}/{1}
+hud.newdraw      = РЕКОРД СКОРОСТИ!
+hud.newaim       = РЕКОРД ТОЧНОСТИ!
+hud.pvestatus    = ГЛ{0} · {1}/{2}   ·   {3}   ·   ЖИЗНИ {4}   ·   {5}
+
+# --- Метки режима ---
+tag.solo   = СОЛО
+tag.coop   = КООП
+tag.volley = ЗАЛП
+tag.sync   = СИНХРО
+
+# --- Жизни (множественное число) ---
+hud.lives.one   = Осталась {0} жизнь
+hud.lives.few   = Осталось {0} жизни
+hud.lives.many  = Осталось {0} жизней
+
+# --- Главное меню ---
+menu.play      = ИГРАТЬ
+menu.campaign  = КАМПАНИЯ
+menu.howto     = КАК ИГРАТЬ
+menu.continue  = ПРОДОЛЖИТЬ
+
+# --- Вкладка звука ---
+sound.sfx    = ЗВУК
+sound.music  = МУЗЫКА
+sound.wind   = ВЕТЕР
+sound.vibe   = ВИБРАЦИЯ
+
+# --- Настройки ---
+settings.language = ЯЗЫК
+
+# --- Оружие ---
+weapon.revolver  = РЕВОЛЬВЕР
+weapon.deagle    = ДЕЗЕРТ ИГЛ
+weapon.shotgun   = ДРОБОВИК
+weapon.sniper    = СНАЙПЕРКА
+weapon.steampunk = СТИМПАНК

@@ -1,0 +1,60 @@
+# High Noon — English (master locale). Every key must exist here; other locales may be partial.
+# Format:  key = value   |   \n = newline   |   {0} = string.Format arg   |   # or // = comment
+# Seed set (Ф0). Full chrome/narrative extraction lands in Ф1–Ф4 (see docs/LOCALIZATION.md).
+
+# --- Result panel / flow ---
+result.rematch   = REMATCH
+result.menu      = MENU
+result.retry     = RETRY
+result.map       = MAP
+result.win       = YOU WIN!
+result.lose      = YOU LOSE
+result.draw      = DRAW
+result.wins      = {0} WINS!
+result.teamwins  = TEAM {0} WINS!
+result.cleared   = STAGE CLEARED!\nNext: {0}
+result.died      = YOU DIED\nLives left: {0}
+
+# --- Duel HUD ---
+duel.bang        = BANG!
+duel.falsestart  = FALSE START
+duel.miss        = MISS
+duel.hit         = HIT
+duel.perfect     = PERFECT!
+duel.reaction.ms = {0} ms
+hud.armor        = ARMOR {0}/{1}
+hud.newdraw      = NEW BEST DRAW!
+hud.newaim       = NEW BEST AIM!
+hud.pvestatus    = CH{0} · {1}/{2}   ·   {3}   ·   LIVES {4}   ·   {5}
+
+# --- Mode tags (PvE status line) ---
+tag.solo   = SOLO
+tag.coop   = CO-OP
+tag.volley = VOLLEY
+tag.sync   = SYNC
+
+# --- Lives (plural helper example) ---
+hud.lives.one   = {0} life left
+hud.lives.other = {0} lives left
+
+# --- Main menu (partial; full chrome in Ф1) ---
+menu.play      = PLAY
+menu.campaign  = PvE CAMPAIGN
+menu.howto     = HOW TO PLAY
+menu.continue  = CONTINUE
+
+# --- Sound tab ---
+sound.sfx    = SFX
+sound.music  = MUSIC
+sound.wind   = WIND
+sound.vibe   = VIBRATE
+
+# --- Settings ---
+settings.language = LANGUAGE
+
+# --- Weapons (display names; the WeaponDef.Key id stays in code) ---
+weapon.revolver  = REVOLVER
+weapon.deagle    = DESERT EAGLE
+weapon.shotgun   = SHOTGUN
+weapon.sniper    = SNIPER
+weapon.steampunk = STEAMPUNK

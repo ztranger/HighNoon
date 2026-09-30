@@ -357,6 +357,12 @@ namespace HighNoon
             },
             CampaignRoster.SaltDebt(),
             CampaignRoster.BootHillNight(),
+            CampaignRoster.TheWire(),
+            CampaignRoster.TheFlood(),
+            CampaignRoster.WhiteSeason(),
+            CampaignRoster.SanIsidro(),
+            CampaignRoster.SundayHorses(),
+            CampaignRoster.TheCircuit(),
         };
 
         public static int Index { get; private set; }
@@ -367,6 +373,12 @@ namespace HighNoon
         public static ChapterDef[] Chapters => Current.Chapters;
 
         public const int StartingLives = 3;
+
+        /// <summary>
+        /// Debug pick. Every road opens, and the map can start any node in any chapter.
+        /// Turn off to restore the clear-the-previous-road chain.
+        /// </summary>
+        public const bool FreePick = true;
 
         public static bool Active;
         public static int Chapter;
@@ -406,6 +418,7 @@ namespace HighNoon
         /// <summary>The first road is open. Each later road opens when the previous one has been cleared.</summary>
         public static bool IsUnlocked(int index)
         {
+            if (FreePick) return index >= 0 && index < All.Length;
             if (index <= 0) return true;
             if (index >= All.Length) return false;
             return IsCleared(All[index - 1].Id);

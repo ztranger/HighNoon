@@ -22,6 +22,7 @@ namespace HighNoon
             QualitySettings.vSyncCount = 0;
             Application.targetFrameRate = 60;
 
+            Loc.Ensure();                         // load the saved / auto-detected UI language
             MusicPlayer.Ensure();                 // persistent background music (starts once, survives scenes)
         }
 

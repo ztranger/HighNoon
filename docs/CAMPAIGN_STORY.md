@@ -1,6 +1,6 @@
 # High Noon — PvE campaign story
 
-**Status:** APPLIED. This is the narrative source of truth for the first solo road, **The Playbill** (`Campaign.All` index 0). The 13-node bill, intros, chapter-3 tagline, and victory/defeat lines are in `Campaign.cs` and `StoryBootstrap.cs`. Two short test roads follow it in the menu chain and are not part of this bill: **Salt Debt**, then **Boot Hill Night**. Lengthening and cutting in §7 are not built. The two-player road is a separate, unbuilt bill: [COOP_CAMPAIGN.md](COOP_CAMPAIGN.md). Do not satisfy it by enabling the 2-player toggle on this roster.
+**Status:** APPLIED. This is the narrative source of truth for the first solo road, **The Playbill** (`Campaign.All` index 0). The 13-node bill, intros, chapter-3 tagline, and victory/defeat lines are in `Campaign.cs` and `StoryBootstrap.cs`. Two short test roads follow it in the menu chain and are not part of this bill: **Salt Debt**, then **Boot Hill Night**. Lengthening and cutting in §7 are not built. The two-player road is a separate, unbuilt bill: [COOP_CAMPAIGN.md](COOP_CAMPAIGN.md). Six later roads, none of them on this cast: [CAMPAIGN_IDEAS.md](CAMPAIGN_IDEAS.md). Do not satisfy it by enabling the 2-player toggle on this roster.
 **Created:** 2026-09-30.
 **Language:** English, to match the codebase and `CLAUDE.md`. In-game banter below is the copy to put in `StageDef.Intro`.
 

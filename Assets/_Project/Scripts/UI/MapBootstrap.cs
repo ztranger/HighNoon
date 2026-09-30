@@ -8,14 +8,16 @@ namespace HighNoon
 {
     /// <summary>
     /// Visual mission map for the current PvE chapter. Nodes run left → right.
-    /// Cleared nodes are green, the current node glows and is tappable (→ starts its
-    /// duel), later nodes are locked. Built in code (overlay UI).
+    /// Cleared nodes are green, the current node glows. Later nodes stay locked unless
+    /// <see cref="Campaign.FreePick"/> is on, in which case every node starts its duel
+    /// and the chapter arrows jump the road. Built in code (overlay UI).
     /// </summary>
     public class MapBootstrap : MonoBehaviour
     {
         static readonly Color Cleared = new Color(0.35f, 0.68f, 0.35f);
         static readonly Color Current = new Color(0.92f, 0.74f, 0.28f);
         static readonly Color Locked  = new Color(0.40f, 0.38f, 0.36f);
+        static readonly Color Open    = new Color(0.62f, 0.48f, 0.30f);
         static readonly Color LineCol = new Color(0.20f, 0.15f, 0.10f, 0.85f);
         static readonly Color Gold    = new Color(0.95f, 0.82f, 0.38f);
 
@@ -82,7 +84,8 @@ namespace HighNoon
                 bool cleared = i < Campaign.Stage;
                 bool current = i == Campaign.Stage;
                 bool boss = i == n - 1;
-                Color col = cleared ? Cleared : current ? Current : Locked;
+                bool playable = current || Campaign.FreePick;
+                Color col = cleared ? Cleared : current ? Current : playable ? Open : Locked;
                 float size = (current ? 150f : 118f) + (boss ? 16f : 0f);
 
                 var node = NewRect($"Node{i}", transform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
@@ -103,11 +106,16 @@ namespace HighNoon
                     new Vector2(0.5f, 0.5f), 360, 50, cleared ? new Color(0.8f, 0.9f, 0.8f) : current ? Gold : new Color(0.7f, 0.68f, 0.65f), FontStyle.Bold);
                 name.rectTransform.anchoredPosition = new Vector2(pos[i].x, pos[i].y - 90f);
 
-                if (current)
+                if (playable)
                 {
+                    int stage = i;
                     var btn = node.gameObject.AddComponent<Button>();
                     btn.targetGraphic = img;
-                    btn.onClick.AddListener(StartStage);
+                    btn.onClick.AddListener(() => StartStage(stage));
+                }
+
+                if (current)
+                {
                     _pulseNode = node;
 
                     // player token stands on the current node
@@ -120,9 +128,28 @@ namespace HighNoon
                 }
             }
 
+            if (Campaign.FreePick && Campaign.Chapters.Length > 1)
+            {
+                if (Campaign.Chapter > 0)
+                {
+                    var prev = MakeButton("PrevChapter", "PREV", new Vector2(0.5f, 0.5f), 200, 72, 32, Open);
+                    ((RectTransform)prev.transform).anchoredPosition = new Vector2(-760f, 390f);
+                    prev.onClick.AddListener(() => ShowChapter(Campaign.Chapter - 1));
+                }
+                if (Campaign.Chapter < Campaign.Chapters.Length - 1)
+                {
+                    var next = MakeButton("NextChapter", "NEXT", new Vector2(0.5f, 0.5f), 200, 72, 32, Open);
+                    ((RectTransform)next.transform).anchoredPosition = new Vector2(760f, 390f);
+                    next.onClick.AddListener(() => ShowChapter(Campaign.Chapter + 1));
+                }
+            }
+
             // Hint + menu.
-            Label("Hint", "Tap the glowing spot to draw", 32,
-                new Vector2(0.5f, 0.5f), 1000, 50, new Color(0.85f, 0.82f, 0.72f), FontStyle.Normal)
+            Label("Hint",
+                Campaign.FreePick && Campaign.Chapters.Length > 1
+                    ? "Tap any spot.  PREV and NEXT change the chapter."
+                    : Campaign.FreePick ? "Tap any spot to draw." : "Tap the glowing spot to draw",
+                32, new Vector2(0.5f, 0.5f), 1200, 50, new Color(0.85f, 0.82f, 0.72f), FontStyle.Normal)
                 .rectTransform.anchoredPosition = new Vector2(0f, -360f);
             var menu = MakeButton("MenuButton", "MENU", new Vector2(0.5f, 0.5f), 280, 80, 36, Locked);
             ((RectTransform)menu.transform).anchoredPosition = new Vector2(0f, -450f);
@@ -131,11 +158,24 @@ namespace HighNoon
             if (_pulseNode != null) StartCoroutine(Pulse());
         }
 
-        void StartStage()
+        void StartStage(int stage)
         {
             Sfx.Click(); Haptics.Light();
+            if (Campaign.FreePick)
+            {
+                Campaign.Stage = stage;
+                Campaign.Save();
+            }
             Campaign.ShowIntro = true; // play this stage's intro banter before the duel
             DuelFlow.Duel();
+        }
+
+        void ShowChapter(int chapter)
+        {
+            Campaign.Chapter = Mathf.Clamp(chapter, 0, Campaign.Chapters.Length - 1);
+            Campaign.Stage = 0;
+            Campaign.Save();
+            DuelFlow.Map();
         }
 
         IEnumerator Pulse()

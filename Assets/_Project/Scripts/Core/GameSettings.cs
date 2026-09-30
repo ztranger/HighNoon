@@ -16,6 +16,7 @@ namespace HighNoon
         const string KWeapon = "hn_weapon";
         const string KCharacter = "hn_character";
         const string KArmor = "hn_armor";
+        const string KLocale = "hn_locale";
 
         public const int ArmorBase = 3;
         public const int ArmorCap = 8;
@@ -29,6 +30,7 @@ namespace HighNoon
         static int _weapon;
         static string _character = "gunslinger";
         static int _armor = ArmorBase;
+        static string _locale = "";
 
         static void Load()
         {
@@ -42,6 +44,14 @@ namespace HighNoon
             _weapon = PlayerPrefs.GetInt(KWeapon, 0);
             _character = PlayerPrefs.GetString(KCharacter, "gunslinger");
             _armor = Mathf.Clamp(PlayerPrefs.GetInt(KArmor, ArmorBase), ArmorBase, ArmorCap);
+            _locale = PlayerPrefs.GetString(KLocale, "");
+        }
+
+        /// <summary>Selected UI language code (e.g. "en", "ru"). Empty = auto-detect on first run (see <see cref="Loc"/>).</summary>
+        public static string Locale
+        {
+            get { Load(); return _locale; }
+            set { Load(); _locale = value ?? ""; PlayerPrefs.SetString(KLocale, _locale); SaveData.Save(); }
         }
 
         /// <summary>How much armor the player brings into a duel. Raised from the STATS tab, capped.</summary>

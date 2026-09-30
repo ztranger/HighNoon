@@ -18,12 +18,38 @@ namespace HighNoon
             Root = root;
             ui.Back(root, back);
             ui.Text(root, "Head", "CAMPAIGNS", 64, new Vector2(0.5f, 0.90f), Vector2.zero, 900, 80, UiBuild.Gold, FontStyle.Bold);
-            ui.Text(root, "Sub", "Clear a road to open the next.", 28, new Vector2(0.5f, 0.82f), Vector2.zero, 900, 40,
+            ui.Text(root, "Sub",
+                Campaign.FreePick ? "Every road is open. On the map, tap any spot." : "Clear a road to open the next.",
+                28, new Vector2(0.5f, 0.82f), Vector2.zero, 1200, 40,
                 new Color(0.80f, 0.72f, 0.55f), FontStyle.Italic);
 
             int n = Campaign.All.Length;
-            float gap = 180f;
-            float top = (n - 1) * gap * 0.5f - 20f;
+            float rowH = 132f;
+            float stride = 148f;
+            var scrollRt = ui.NewRect("RoadScroll", root, Vector2.zero, Vector2.one);
+            scrollRt.offsetMin = new Vector2(40f, 24f);
+            scrollRt.offsetMax = new Vector2(-40f, -210f);
+            var scrollImg = scrollRt.gameObject.AddComponent<Image>();
+            scrollImg.color = new Color(0f, 0f, 0f, 0f);
+            scrollImg.raycastTarget = true;
+            var scroll = scrollRt.gameObject.AddComponent<ScrollRect>();
+            scroll.horizontal = false;
+            scroll.vertical = true;
+            scroll.movementType = ScrollRect.MovementType.Clamped;
+            scroll.scrollSensitivity = 40f;
+
+            var view = ui.NewRect("Viewport", scrollRt, Vector2.zero, Vector2.one);
+            view.offsetMin = Vector2.zero;
+            view.offsetMax = Vector2.zero;
+            view.gameObject.AddComponent<RectMask2D>();
+
+            var content = ui.NewRect("Content", view, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f));
+            content.pivot = new Vector2(0.5f, 1f);
+            content.sizeDelta = new Vector2(1600f, n * stride);
+            content.anchoredPosition = Vector2.zero;
+            scroll.viewport = view;
+            scroll.content = content;
+
             for (int i = 0; i < n; i++)
             {
                 int index = i;
@@ -40,8 +66,9 @@ namespace HighNoon
                     : saved ? new Color(0.55f, 0.70f, 0.40f)
                     : new Color(0.70f, 0.52f, 0.24f);
 
-                var btn = ui.Button(root, "Road" + i, def.Title, new Vector2(0.5f, 0.5f), new Vector2(0f, top - i * gap),
-                    1480, 160, 40, fill, out var image);
+                var btn = ui.Button(content, "Road" + i, def.Title, new Vector2(0.5f, 1f),
+                    new Vector2(0f, -(rowH * 0.5f + i * stride)),
+                    1480, rowH, 36, fill, out var image);
                 var title = btn.GetComponentInChildren<Text>();
                 title.rectTransform.anchoredPosition = new Vector2(0f, 36f);
                 title.rectTransform.sizeDelta = new Vector2(1400f, 56f);

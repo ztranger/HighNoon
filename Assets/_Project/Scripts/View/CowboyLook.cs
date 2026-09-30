@@ -95,8 +95,10 @@ namespace HighNoon
                 Facial = source.Facial == FacialHair.Beard ? FacialHair.Mustache
                        : source.Facial == FacialHair.Mustache ? FacialHair.None
                        : FacialHair.Mustache,
-                // Different illustration from the source so a 2v2 pair isn't two identical cowboys.
-                CharacterId = source.CharacterId == "doc_graves" ? "black_calhoun" : "doc_graves",
+                // Sheet characters swap illustrations. A procedural look (no id) stays procedural,
+                // so a generated line does not suddenly become a catalog face.
+                CharacterId = string.IsNullOrEmpty(source.CharacterId) ? null
+                    : source.CharacterId == "doc_graves" ? "black_calhoun" : "doc_graves",
             };
         }
     }
