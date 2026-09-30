@@ -20,6 +20,31 @@ namespace HighNoon
     public enum DuelType { Reaction, Timing, Volley, Sync }
 
     /// <summary>
+    /// Shared numbers for the sweet-spot slider (Timing / Volley / Sync). The window is measured in
+    /// pointer <b>passes</b> — one edge-to-edge sweep is a pass — not seconds, so it reads the same at
+    /// any sweep speed. The count comes from difficulty (<see cref="PassesFor"/>: Easy 4 / Normal 3 /
+    /// Hard 2); a stage may override it with an explicit <see cref="StageDef.Passes"/> &gt; 0. PvE reads
+    /// the stage difficulty, PvP/Coop the menu difficulty (both via <see cref="MatchSettings.BotDifficulty"/>).
+    /// </summary>
+    public static class TimingRules
+    {
+        /// <summary>Slider window (pointer passes) by difficulty: harder = fewer sweeps to react in.</summary>
+        public static int PassesFor(Difficulty difficulty)
+        {
+            switch (difficulty)
+            {
+                case Difficulty.Easy: return 4;
+                case Difficulty.Hard: return 2;
+                default:              return 3; // Normal
+            }
+        }
+
+        /// <summary>Reddening spans the last this-many passes: normal at ≥ this remaining, full red at 0
+        /// (the final pass, which also shakes). See <see cref="TimingBar.SetPassesLeft"/>.</summary>
+        public const float RedFromPasses = 3f;
+    }
+
+    /// <summary>
     /// Shared numbers for a <see cref="DuelType.Volley"/> mission. The stage sets the foe count;
     /// the round reads these so the roster and the tap sequence cannot drift apart.
     /// </summary>
@@ -28,10 +53,8 @@ namespace HighNoon
         public const int MinFoes = 2;
         public const int MaxFoes = 3;
 
-        /// <summary>How long one opponent's window stays open before a silent hesitation counts as a miss.</summary>
-        public const float BeatSeconds = 4.5f;
-
-        /// <summary>Pause after a hit or a miss so the drop (or the return fire) can be read before the next window.</summary>
+        /// <summary>Pause after a hit or a miss so the drop (or the return fire) can be read before the next window.
+        /// The window length itself is in slider passes now — see <see cref="TimingRules"/> / <see cref="StageDef.Passes"/>.</summary>
         public const float BetweenBeats = 0.45f;
 
         /// <summary>
@@ -57,9 +80,6 @@ namespace HighNoon
         public const int Hands = 2;
         public const int MinFoes = 2;
         public const int MaxFoes = 4;
-
-        /// <summary>How long one pair of bars stays live before an untouched hand is a miss.</summary>
-        public const float RoundSeconds = 8f;
 
         /// <summary>Phase offset = green half-width × this. Keeps an overlap; does not scale past the zone.</summary>
         public const float PhaseInGreen = 0.75f;

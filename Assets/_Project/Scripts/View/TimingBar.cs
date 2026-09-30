@@ -34,7 +34,6 @@ namespace HighNoon
         static readonly Color MissCol    = new Color(1f, 0.42f, 0.36f, 1f);
         static readonly Color TrackHot   = new Color(0.72f, 0.08f, 0.06f, 0.96f);
         static readonly Color FrameHot   = new Color(0.42f, 0.04f, 0.03f, 1f);
-        const float ShakeTail = 1.15f; // seconds at the end of the window
         const float ShakeAmp = 7f;     // pixels, whole bar, so the green and the pointer stay aligned
 
         public void Build(Transform parent, Font font, bool topSide, Vector2 anchoredPos,
@@ -105,25 +104,24 @@ namespace HighNoon
         }
 
         /// <summary>
-        /// Heat the track from its neutral brown toward red as the window runs out,
-        /// and jitter the whole bar in the last <see cref="ShakeTail"/> seconds.
-        /// The green zone moves with the pointer, so the shake does not change the hit.
+        /// Colour + shake the bar by how many pointer passes are left in the window (one edge-to-edge
+        /// sweep is a pass). No reddening at <see cref="TimingRules.RedFromPasses"/>+ passes remaining;
+        /// the red grows as the window runs out, and the final pass (under 1 remaining) also shakes the
+        /// whole bar. The green zone rides with the pointer, so the shake never changes the hit.
         /// </summary>
-        public void SetTimeLeft(float secondsLeft, float windowSeconds)
+        public void SetPassesLeft(float passesLeft)
         {
             if (Locked || _self == null) return;
-            float span = Mathf.Max(0.01f, windowSeconds);
-            float gone = 1f - Mathf.Clamp01(secondsLeft / span);
-            float heat = gone * gone;
+            float heat = Mathf.Clamp01((TimingRules.RedFromPasses - passesLeft) / TimingRules.RedFromPasses);
             if (_track != null) _track.color = Color.Lerp(TrackCol, TrackHot, heat);
             if (_frame != null) _frame.color = Color.Lerp(FrameCol, FrameHot, heat);
 
-            if (secondsLeft >= ShakeTail)
+            if (passesLeft >= 1f) // no shake until the final pass
             {
                 _self.anchoredPosition = _restPos;
                 return;
             }
-            float shake = 1f - Mathf.Clamp01(secondsLeft / ShakeTail);
+            float shake = 1f - Mathf.Clamp01(passesLeft); // 0 at one pass left → 1 at the far end
             float amp = shake * shake * ShakeAmp;
             float wobble = Mathf.Sin(Time.time * 46f) * amp;
             float wobbleY = Mathf.Sin(Time.time * 63f) * amp * 0.4f;

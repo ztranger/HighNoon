@@ -135,15 +135,18 @@ namespace HighNoon
                 _audio.StartTension();
                 _tapLeft.ResetInput(); _tapLeft.Arm();
 
+                const int passes = 4; // teaching window: calm for the first sweep, reddens over the last three
                 float t = 0f; bool tapped = false;
-                while (t < 8f)
+                while (true)
                 {
                     t += Time.deltaTime;
-                    float x = Mathf.PingPong(t * 0.8f, 1f);
+                    float p = t * 0.8f;
+                    float x = Mathf.PingPong(p, 1f);
                     bar.SetSweepX(x);
-                    bar.SetTimeLeft(8f - t, 8f);
+                    bar.SetPassesLeft(passes - p);
                     _tapLeft.Tick(Now);
                     if (_tapLeft.HasFired) { bar.Lock(x); tapped = true; break; }
+                    if (p >= passes) break;
                     yield return null;
                 }
                 _audio.StopTension();

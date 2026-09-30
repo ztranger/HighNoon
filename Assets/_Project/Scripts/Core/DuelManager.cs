@@ -348,9 +348,10 @@ namespace HighNoon
 
             // --- Build the bars. Humans always aim; bots only get a (self-aiming) bar in PvP/Coop. ---
             TimingTuning(out float greenHalf, out float sweepSpeed);
+            int passes = WindowPasses(pve);
             var bars = new Dictionary<Duelist, TimingBar>();
             var botTargetX = new Dictionary<Duelist, float>();
-            var botLockTime = new Dictionary<Duelist, float>();
+            var botLockPass = new Dictionary<Duelist, float>();
 
             var barers = active.Where(d => d.Kind == DuelistKind.Human || !pve).ToList();
             var bottom = barers.Where(d => d.Side == DuelSide.Bottom).OrderBy(d => d.Lane).ToList();
@@ -370,7 +371,7 @@ namespace HighNoon
                     float err = BotAimError(greenHalf);
                     float sign = Random.value < 0.5f ? -1f : 1f;
                     botTargetX[d] = Mathf.Clamp01(gc + sign * err);
-                    botLockTime[d] = Random.Range(0.5f, 2.2f);
+                    botLockPass[d] = Random.Range(0.3f, Mathf.Max(0.4f, passes - 0.15f));
                 }
             }
 
@@ -378,30 +379,32 @@ namespace HighNoon
             Audio.StartTension();
 
             Phase = DuelPhase.Tension;
-            const float maxAim = 8f;
             float t = 0f;
-            while (t < maxAim)
+            while (true)
             {
                 t += Time.deltaTime;
-                float sweepX = Mathf.PingPong(t * sweepSpeed, 1f);
+                float p = t * sweepSpeed;               // pointer passes elapsed (edge-to-edge sweeps)
+                float sweepX = Mathf.PingPong(p, 1f);
+                float passesLeft = passes - p;
                 double now = Time.realtimeSinceStartupAsDouble;
 
                 foreach (var kv in bars)
                 {
                     var d = kv.Key; var bar = kv.Value;
                     if (bar.Locked) continue;
-                    bar.SetTimeLeft(maxAim - t, maxAim);
+                    bar.SetPassesLeft(passesLeft);
                     if (d.Kind == DuelistKind.Human)
                     {
                         d.Input.Tick(now);
                         if (d.Input.HasFired) { bar.Lock(sweepX); PlayShootFx(d); }
                         else bar.SetSweepX(sweepX);
                     }
-                    else if (t >= botLockTime[d]) { bar.Lock(botTargetX[d]); PlayShootFx(d); }
+                    else if (p >= botLockPass[d]) { bar.Lock(botTargetX[d]); PlayShootFx(d); }
                     else bar.SetSweepX(sweepX);
                 }
 
                 if (bars.Values.All(b => b.Locked)) break;
+                if (p >= passes) break;                 // window ran out — unlocked bars forced to a miss below
                 yield return null;
             }
             Audio.StopTension();
@@ -537,6 +540,13 @@ namespace HighNoon
             }
         }
 
+        /// <summary>Slider window in pointer passes: an explicit stage override (PvE, Passes &gt; 0), else the difficulty default.</summary>
+        static int WindowPasses(bool pve)
+        {
+            int stage = pve ? Campaign.CurrentStage.Passes : 0;
+            return stage > 0 ? stage : TimingRules.PassesFor(MatchSettings.BotDifficulty);
+        }
+
         /// <summary>A bot's distance-from-centre when it self-aims, banded by difficulty.</summary>
         static float BotAimError(float greenHalf)
         {
@@ -597,6 +607,7 @@ namespace HighNoon
 
             PrepareVitality(active);
             TimingTuning(out float greenHalf, out float sweepSpeed);
+            int passes = WindowPasses(PveMode);
             Audio.StartTension();
             Phase = DuelPhase.Tension;
             Hud.ShowArmor(human.Hp, human.MaxHp);
@@ -620,11 +631,12 @@ namespace HighNoon
 
                     float t = 0f;
                     bool tapped = false;
-                    while (t < Volley.BeatSeconds)
+                    while (true)
                     {
                         t += Time.deltaTime;
-                        float sweepX = Mathf.PingPong(t * sweepSpeed, 1f);
-                        bar.SetTimeLeft(Volley.BeatSeconds - t, Volley.BeatSeconds);
+                        float p = t * sweepSpeed;               // edge-to-edge sweeps elapsed
+                        float sweepX = Mathf.PingPong(p, 1f);
+                        bar.SetPassesLeft(passes - p);
                         double now = Time.realtimeSinceStartupAsDouble;
                         human.Input.Tick(now);
                         if (human.Input.HasFired)
@@ -635,6 +647,7 @@ namespace HighNoon
                             break;
                         }
                         bar.SetSweepX(sweepX);
+                        if (p >= passes) break;                 // window ran out — a silent miss
                         yield return null;
                     }
 
@@ -712,6 +725,7 @@ namespace HighNoon
 
             PrepareVitality(active);
             TimingTuning(out float greenHalf, out float sweepSpeed);
+            int passes = WindowPasses(PveMode);
             float phase = greenHalf * SyncRules.PhaseInGreen;
             const float center = 0.5f;
             int shots = foes.Count / SyncRules.Hands;
@@ -752,14 +766,15 @@ namespace HighNoon
 
                     bool leftTapped = !needL, rightTapped = !needR;
                     float t = 0f;
-                    while (t < SyncRules.RoundSeconds && !(leftTapped && rightTapped) && !failed)
+                    while (!(leftTapped && rightTapped) && !failed)
                     {
                         t += Time.deltaTime;
-                        float leftX = Mathf.PingPong(t * sweepSpeed, 1f);
-                        float rightX = Mathf.PingPong(t * sweepSpeed + phase, 1f);
-                        float secondsLeft = SyncRules.RoundSeconds - t;
-                        if (needL && !leftTapped) leftBar.SetTimeLeft(secondsLeft, SyncRules.RoundSeconds);
-                        if (needR && !rightTapped) rightBar.SetTimeLeft(secondsLeft, SyncRules.RoundSeconds);
+                        float p = t * sweepSpeed;               // left pointer's edge-to-edge sweeps
+                        float leftX = Mathf.PingPong(p, 1f);
+                        float rightX = Mathf.PingPong(p + phase, 1f);
+                        float passesLeft = passes - p;
+                        if (needL && !leftTapped) leftBar.SetPassesLeft(passesLeft);
+                        if (needR && !rightTapped) rightBar.SetPassesLeft(passesLeft);
                         double now = Time.realtimeSinceStartupAsDouble;
                         if (needL) leftInput.Tick(now);
                         if (needR) rightInput.Tick(now);
@@ -788,6 +803,7 @@ namespace HighNoon
                         }
                         else if (needR && !rightTapped) rightBar.SetSweepX(rightX);
 
+                        if (p >= passes) break;                 // window ran out — untapped hands miss below
                         yield return null;
                     }
 

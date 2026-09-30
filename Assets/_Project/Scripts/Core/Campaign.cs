@@ -47,6 +47,16 @@ namespace HighNoon
         /// <summary>Armor the player loses on a miss against these foes. Default 1. Volley and Sync only.</summary>
         public int Strike = 1;
 
+        /// <summary>
+        /// Slider window length as the number of pointer passes (edge-to-edge sweeps) before an untapped
+        /// bar is a forced miss. 1 = the marker crosses once and reaching the far end is a loss; higher =
+        /// more sweeps. The last <see cref="TimingRules.RedFromPasses"/> passes redden the bar (final pass
+        /// = red + shake). Leave 0 to use the difficulty default (<see cref="TimingRules.PassesFor"/>:
+        /// Easy 4 / Normal 3 / Hard 2); set a positive value to override it on this stage. Used by Timing,
+        /// Volley (each foe window) and Sync (each pair wave); ignored by Reaction.
+        /// </summary>
+        public int Passes; // 0 = auto (by difficulty)
+
         public CowboyLook Look;
         public DialogLine[] Intro;
     }
