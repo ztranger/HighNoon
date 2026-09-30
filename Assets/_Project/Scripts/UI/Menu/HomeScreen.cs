@@ -12,10 +12,12 @@ namespace HighNoon
         Image _heroImg;
         UiSpriteAnim _heroAnim;
         Text _charName, _arenaName;
+        MenuDiorama _diorama;
 
-        public void Build(RectTransform root, UiBuild ui, Action<MenuScreenId> go)
+        public void Build(RectTransform root, UiBuild ui, Action<MenuScreenId> go, MenuDiorama diorama = null)
         {
             Root = root;
+            _diorama = diorama;
 
             Chip(ui, root, "NavStats", "STATS", new Vector2(0f, 1f), new Vector2(140f, -56f), () => go(MenuScreenId.Stats));
             Chip(ui, root, "NavGuns", "GUNS", new Vector2(0f, 1f), new Vector2(380f, -56f), () => go(MenuScreenId.Guns));
@@ -25,16 +27,20 @@ namespace HighNoon
             ui.Text(root, "Title", "HIGH NOON", 88, new Vector2(0.5f, 0.76f), Vector2.zero, 800, 110, UiBuild.Gold, FontStyle.Bold);
             ui.Text(root, "Sub", "— Wild West Duel —", 34, new Vector2(0.5f, 0.66f), Vector2.zero, 700, 50, new Color(0.8f, 0.7f, 0.5f), FontStyle.Normal);
 
-            var heroGo = new GameObject("Hero");
-            var hrt = heroGo.AddComponent<RectTransform>();
-            hrt.SetParent(root, false);
-            hrt.anchorMin = hrt.anchorMax = new Vector2(0.22f, 0.42f);
-            hrt.pivot = new Vector2(0.5f, 0.5f);
-            hrt.sizeDelta = new Vector2(340f, 460f);
-            _heroImg = heroGo.AddComponent<Image>();
-            _heroImg.raycastTarget = false;
-            _heroImg.preserveAspect = true;
-            _heroAnim = heroGo.AddComponent<UiSpriteAnim>();
+            // With the world diorama on, the real cowboy stands in for the flat UI hero image.
+            if (_diorama == null)
+            {
+                var heroGo = new GameObject("Hero");
+                var hrt = heroGo.AddComponent<RectTransform>();
+                hrt.SetParent(root, false);
+                hrt.anchorMin = hrt.anchorMax = new Vector2(0.22f, 0.42f);
+                hrt.pivot = new Vector2(0.5f, 0.5f);
+                hrt.sizeDelta = new Vector2(340f, 460f);
+                _heroImg = heroGo.AddComponent<Image>();
+                _heroImg.raycastTarget = false;
+                _heroImg.preserveAspect = true;
+                _heroAnim = heroGo.AddComponent<UiSpriteAnim>();
+            }
 
             _charName = ui.Text(root, "CharName", "GUNSLINGER", 28, new Vector2(0.22f, 0.14f), Vector2.zero, 420, 44, UiBuild.Gold, FontStyle.Bold);
             var prev = ui.Button(root, "CharPrev", "<", new Vector2(0.22f, 0.14f), new Vector2(-200f, 0f), 80, 80, 44, UiBuild.Normal, out _);
@@ -51,8 +57,8 @@ namespace HighNoon
             _arenaName = ui.Text(root, "ArenaName", "RANDOM", 26, new Vector2(0.70f, 0.14f), Vector2.zero, 320, 44, UiBuild.Gold, FontStyle.Bold);
             var aPrev = ui.Button(root, "ArenaPrev", "<", new Vector2(0.70f, 0.14f), new Vector2(-220f, 0f), 80, 80, 44, UiBuild.Normal, out _);
             var aNext = ui.Button(root, "ArenaNext", ">", new Vector2(0.70f, 0.14f), new Vector2(220f, 0f), 80, 80, 44, UiBuild.Normal, out _);
-            aPrev.onClick.AddListener(() => { MatchSettings.CycleMenuArena(-1); Refresh(); });
-            aNext.onClick.AddListener(() => { MatchSettings.CycleMenuArena(1); Refresh(); });
+            aPrev.onClick.AddListener(() => { MatchSettings.CycleMenuArena(-1); Refresh(); _diorama?.RefreshArena(); });
+            aNext.onClick.AddListener(() => { MatchSettings.CycleMenuArena(1); Refresh(); _diorama?.RefreshArena(); });
 
             Refresh();
         }
@@ -80,6 +86,7 @@ namespace HighNoon
         {
             CowboyCatalog.CyclePlayable(dir);
             Refresh();
+            _diorama?.RefreshPlayer();
             Sfx.Click();
         }
 

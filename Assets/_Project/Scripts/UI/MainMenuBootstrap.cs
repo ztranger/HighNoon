@@ -17,6 +17,8 @@ namespace HighNoon
         SetupScreen _setup;
         SettingsScreen _settings;
         CampaignSelectScreen _campaigns;
+        MenuDiorama _diorama;
+        GameObject _bg;
 
         void Start()
         {
@@ -29,6 +31,7 @@ namespace HighNoon
             Campaign.LoadSavedRun();
             SetupCamera();
             SetupEventSystem();
+            _diorama = MenuDiorama.Create(); // living world backdrop behind the UI (needs Camera.main)
             BuildUI(new UiBuild(font));
             Show(MenuScreenId.Home);
         }
@@ -37,8 +40,10 @@ namespace HighNoon
         {
             UiCanvas.Overlay(gameObject);
 
+            // Opaque backdrop for the non-Home panels; hidden on Home so the diorama shows through.
             var bg = ui.Stretch("BG", transform);
             bg.gameObject.AddComponent<Image>().color = new Color(0.16f, 0.11f, 0.09f);
+            _bg = bg.gameObject;
 
             _home = new HomeScreen();
             _stats = new StatsScreen();
@@ -47,7 +52,7 @@ namespace HighNoon
             _settings = new SettingsScreen();
             _campaigns = new CampaignSelectScreen();
 
-            _home.Build(ui.Stretch("Home", transform), ui, Show);
+            _home.Build(ui.Stretch("Home", transform), ui, Show, _diorama);
             _stats.Build(ui.Stretch("Stats", transform), ui, BackHome);
             _guns.Build(ui.Stretch("Guns", transform), ui, BackHome, () => _setup.Refresh());
             _setup.Build(ui.Stretch("Setup", transform), ui, BackHome, Show, () => _setup.Refresh());
@@ -62,9 +67,13 @@ namespace HighNoon
 
         void Show(MenuScreenId id)
         {
+            bool home = id == MenuScreenId.Home;
+            if (_bg != null) _bg.SetActive(!home);          // reveal the diorama on Home, cover it elsewhere
+            if (_diorama != null) _diorama.SetRunning(home); // tumbleweeds only while Home is visible
+
             if (_home.Root != null)
             {
-                bool on = id == MenuScreenId.Home;
+                bool on = home;
                 _home.Root.gameObject.SetActive(on);
                 if (on) _home.Refresh();
             }
