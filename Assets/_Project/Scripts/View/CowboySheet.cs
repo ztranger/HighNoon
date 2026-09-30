@@ -294,7 +294,10 @@ namespace HighNoon
             string abs = Path.GetFullPath(Path.Combine(Application.dataPath, "_Project/Resources", found.Path + ".json"));
             Directory.CreateDirectory(Path.GetDirectoryName(abs) ?? ".");
             File.WriteAllText(abs, JsonUtility.ToJson(off, true));
-            UnityEditor.AssetDatabase.ImportAsset("Assets/_Project/Resources/" + found.Path + ".json");
+            // Runtime assembly cannot reference UnityEditor. Import by reflection so the editor picks up the json.
+            var assetDb = System.Type.GetType("UnityEditor.AssetDatabase, UnityEditor");
+            assetDb?.GetMethod("ImportAsset", new[] { typeof(string) })
+                ?.Invoke(null, new object[] { "Assets/_Project/Resources/" + found.Path + ".json" });
 #endif
         }
 

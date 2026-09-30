@@ -2,9 +2,9 @@
     "name": "HighNoon.Tests.Editor",
     "rootNamespace": "HighNoon",
     "references": [
+        "HighNoon",
         "UnityEngine.TestRunner",
-        "UnityEditor.TestRunner",
-        "Assembly-CSharp"
+        "UnityEditor.TestRunner"
     ],
     "includePlatforms": [
         "Editor"

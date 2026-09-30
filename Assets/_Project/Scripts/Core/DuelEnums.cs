@@ -13,10 +13,9 @@ namespace HighNoon
     /// <summary>
     /// How a duel is decided. <see cref="Reaction"/> = classic quick-draw on BANG.
     /// <see cref="Timing"/> = one sweeping "sweet spot" bar. <see cref="Volley"/> = a PvE
-    /// sequence of those bars, one per opponent. <see cref="Sync"/> = two bars at once,
-    /// one hand each, both must land green on the same pass.
-    /// Campaign stages pick this on <see cref="StageDef.Type"/> (default Timing; the final boss
-    /// is Reaction; Town Trouble is Sync; Canyon Ambush is Volley).
+    /// sequence of those bars, one foe at a time, until their reserve is gone.
+    /// <see cref="Sync"/> = two bars at once; a green hand wounds its foe even if the other misses.
+    /// Campaign stages pick this on <see cref="StageDef.Type"/> (default Timing; Black Jack is Reaction).
     /// </summary>
     public enum DuelType { Reaction, Timing, Volley, Sync }
 

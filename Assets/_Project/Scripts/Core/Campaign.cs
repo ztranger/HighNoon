@@ -60,15 +60,24 @@ namespace HighNoon
         public StageDef[] Stages;
     }
 
+    /// <summary>One selectable PvE road. Clearing it unlocks the next entry in <see cref="Campaign.All"/>.</summary>
+    public sealed class CampaignDef
+    {
+        public string Id;
+        public string Title;
+        public string Blurb;
+        public string Victory;
+        public string Defeat;
+        public ChapterDef[] Chapters;
+    }
+
     /// <summary>
-    /// PvE campaign, split into chapters — each chapter is its own map of stage nodes.
-    /// Static so run state survives scene changes (Map ↔ Duel). Progress within a
-    /// chapter is <see cref="Stage"/> (nodes below it are cleared, it is the current
-    /// node, nodes above are locked). Clearing the last node advances to the next chapter.
+    /// PvE roads. <see cref="Campaign.All"/> is the chain the menu lists; <see cref="Campaign.Chapters"/>
+    /// is the road currently in progress. Static so run state survives scene changes (Map ↔ Duel).
     /// </summary>
     public static class Campaign
     {
-        public static readonly ChapterDef[] Chapters =
+        static readonly ChapterDef[] FrontierChapters =
         {
             new ChapterDef
             {
@@ -144,6 +153,7 @@ namespace HighNoon
                         {
                             new DialogLine(Speaker.Opponent, "This town already has a star. You ain't it."),
                             new DialogLine(Speaker.You,      "Then take a bow."),
+                            new DialogLine(Speaker.Opponent, "Jack paid for the ink. I just deliver it."),
                         },
                     },
                     new StageDef
@@ -160,7 +170,7 @@ namespace HighNoon
                         {
                             new DialogLine(Speaker.Opponent, "Four of us. And you've only got two hands."),
                             new DialogLine(Speaker.You,      "Each hand's good for two."),
-                            new DialogLine(Speaker.Opponent, "Then don't let either one slip."),
+                            new DialogLine(Speaker.Opponent, "The stays are steel. Don't let either hand slip."),
                         },
                     },
                     new StageDef
@@ -174,8 +184,9 @@ namespace HighNoon
                         },
                         Intro = new[]
                         {
-                            new DialogLine(Speaker.Opponent, "Never missed a shot in my life."),
-                            new DialogLine(Speaker.You,      "First time for everything."),
+                            new DialogLine(Speaker.Opponent, "I saw your partner at the crossroads. Jack didn't use a bar."),
+                            new DialogLine(Speaker.You,      "Then I'll walk there myself."),
+                            new DialogLine(Speaker.Opponent, "He waits for the bang. You'll hear it."),
                         },
                     },
                 },
@@ -183,7 +194,7 @@ namespace HighNoon
             new ChapterDef
             {
                 Title = "Blood & Silver",
-                Tagline = "The Salazar gang owns these hills. Time to thin them out.",
+                Tagline = "The hills pay the show. The mine is called Salazar.",
                 Theme = new Color(0.55f, 0.30f, 0.26f),
                 Stages = new[]
                 {
@@ -205,7 +216,8 @@ namespace HighNoon
                     },
                     new StageDef
                     {
-                        Title = "The Cabaret Singer", Arena = "Ghost Town", Difficulty = Difficulty.Hard,
+                        Title = "The Payroll", Arena = "Ghost Town", Difficulty = Difficulty.Hard,
+                        Type = DuelType.Volley, Opponents = 2, Hp = 3, Strike = 1,
                         Look = new CowboyLook
                         {
                             Shirt = new Color(0.62f, 0.12f, 0.16f),
@@ -214,9 +226,9 @@ namespace HighNoon
                         },
                         Intro = new[]
                         {
-                            new DialogLine(Speaker.Opponent, "Last show in this town. You're the encore."),
-                            new DialogLine(Speaker.You,      "I don't clap."),
-                            new DialogLine(Speaker.Opponent, "Then you'll take a bow."),
+                            new DialogLine(Speaker.Opponent, "Salazar silver. It dresses the whole company."),
+                            new DialogLine(Speaker.You,      "Then the mine can bury them."),
+                            new DialogLine(Speaker.Opponent, "Two of us. Steel under the coats. Take the windows."),
                         },
                     },
                     new StageDef
@@ -232,6 +244,7 @@ namespace HighNoon
                         {
                             new DialogLine(Speaker.Opponent, "Fastest hand west of the river. That's me."),
                             new DialogLine(Speaker.You,      "You talk faster than you draw."),
+                            new DialogLine(Speaker.Opponent, "Jack won't give you a bar. He waits for the bang. So will I, when he's done with you."),
                         },
                     },
                 },
@@ -246,6 +259,7 @@ namespace HighNoon
                     new StageDef
                     {
                         Title = "The Dancer", Arena = "Boot Hill", Difficulty = Difficulty.Hard,
+                        Type = DuelType.Volley, Opponents = 3,
                         Look = new CowboyLook
                         {
                             Shirt = new Color(0.16f, 0.22f, 0.55f),
@@ -254,14 +268,15 @@ namespace HighNoon
                         },
                         Intro = new[]
                         {
-                            new DialogLine(Speaker.Opponent, "Last waltz on Boot Hill. You're my partner."),
-                            new DialogLine(Speaker.You,      "I don't dance."),
-                            new DialogLine(Speaker.Opponent, "Then fall in time."),
+                            new DialogLine(Speaker.Opponent, "I danced at the funeral. Jack paid for the floor."),
+                            new DialogLine(Speaker.You,      "Then you can bury him next."),
+                            new DialogLine(Speaker.Opponent, "Three of us. Fall in time, or don't fall at all."),
                         },
                     },
                     new StageDef
                     {
                         Title = "The Chorus Girl", Arena = "Salt Flats", Difficulty = Difficulty.Hard,
+                        Type = DuelType.Sync, Opponents = 2, Strike = 2,
                         Look = new CowboyLook
                         {
                             Shirt = new Color(0.22f, 0.32f, 0.72f),
@@ -270,9 +285,9 @@ namespace HighNoon
                         },
                         Intro = new[]
                         {
-                            new DialogLine(Speaker.Opponent, "Salt and spotlight. Same glare."),
+                            new DialogLine(Speaker.Opponent, "The warrant's signed. Miss once and it costs you twice."),
                             new DialogLine(Speaker.You,      "I didn't come for a show."),
-                            new DialogLine(Speaker.Opponent, "Too late. You're on."),
+                            new DialogLine(Speaker.Opponent, "The Prima's vest stopped a rifle. You'll meet it before you meet him."),
                         },
                     },
                 },
@@ -298,6 +313,7 @@ namespace HighNoon
                         {
                             new DialogLine(Speaker.Opponent, "I've buried better men than you. And this vest has stopped worse."),
                             new DialogLine(Speaker.You,      "Then I'll keep shootin' till it doesn't."),
+                            new DialogLine(Speaker.Opponent, "Two of us. The gallows can wait."),
                         },
                     },
                     new StageDef
@@ -317,6 +333,29 @@ namespace HighNoon
             },
         };
 
+        /// <summary>Play order. Index 0 is always open; each later road unlocks when the one before it is cleared.</summary>
+        public static readonly CampaignDef[] All =
+        {
+            new CampaignDef
+            {
+                Id = "playbill",
+                Title = "The Playbill",
+                Blurb = "One list. The last name is Black Jack.",
+                Victory = "The bill is done.  The crossroads keeps the name you came for.",
+                Defeat = "Three hearts.  The list keeps the last name.",
+                Chapters = FrontierChapters,
+            },
+            CampaignRoster.SaltDebt(),
+            CampaignRoster.BootHillNight(),
+        };
+
+        public static int Index { get; private set; }
+
+        public static CampaignDef Current => All[Mathf.Clamp(Index, 0, All.Length - 1)];
+
+        /// <summary>Chapters of the road in progress. Call <see cref="Select"/> before starting a different road.</summary>
+        public static ChapterDef[] Chapters => Current.Chapters;
+
         public const int StartingLives = 3;
 
         public static bool Active;
@@ -329,6 +368,8 @@ namespace HighNoon
 
         // ---- persistence (PlayerPrefs) ----
         const string KActive = "hn_cmp_active";
+        const string KId = "hn_cmp_id";
+        const string KCleared = "hn_cmp_cleared";
         const string KChapter = "hn_cmp_chapter";
         const string KStage = "hn_cmp_stage";
         const string KLives = "hn_cmp_lives";
@@ -336,14 +377,65 @@ namespace HighNoon
         /// <summary>True when a resumable in-progress run is saved (populated by <see cref="LoadSavedRun"/>).</summary>
         public static bool HasSavedRun { get; private set; }
 
+        public static void Select(int index)
+        {
+            Index = Mathf.Clamp(index, 0, All.Length - 1);
+        }
+
+        public static bool IsCleared(string id)
+        {
+            if (string.IsNullOrEmpty(id)) return false;
+            var raw = PlayerPrefs.GetString(KCleared, "");
+            if (string.IsNullOrEmpty(raw)) return false;
+            var parts = raw.Split(',');
+            for (int i = 0; i < parts.Length; i++)
+                if (parts[i] == id) return true;
+            return false;
+        }
+
+        /// <summary>The first road is open. Each later road opens when the previous one has been cleared.</summary>
+        public static bool IsUnlocked(int index)
+        {
+            if (index <= 0) return true;
+            if (index >= All.Length) return false;
+            return IsCleared(All[index - 1].Id);
+        }
+
+        public static string UnlockHint(int index)
+        {
+            if (index <= 0 || index >= All.Length) return "";
+            return "Finish " + All[index - 1].Title + " first.";
+        }
+
+        public static bool IsSavedRun(int index)
+        {
+            if (!HasSavedRun || index < 0 || index >= All.Length) return false;
+            return All[index].Id == PlayerPrefs.GetString(KId, All[0].Id);
+        }
+
         public static void Save()
         {
             PlayerPrefs.SetInt(KActive, Active ? 1 : 0);
+            PlayerPrefs.SetString(KId, Current.Id);
             PlayerPrefs.SetInt(KChapter, Chapter);
             PlayerPrefs.SetInt(KStage, Stage);
             PlayerPrefs.SetInt(KLives, Lives);
             SaveData.Save();
             HasSavedRun = Active;
+        }
+
+        static void MarkCleared(string id)
+        {
+            if (IsCleared(id)) return;
+            var raw = PlayerPrefs.GetString(KCleared, "");
+            PlayerPrefs.SetString(KCleared, string.IsNullOrEmpty(raw) ? id : raw + "," + id);
+        }
+
+        static int IndexOf(string id)
+        {
+            for (int i = 0; i < All.Length; i++)
+                if (All[i].Id == id) return i;
+            return -1;
         }
 
         /// <summary>Load the saved run into the static state (call once at app/menu start).</summary>
@@ -353,6 +445,7 @@ namespace HighNoon
             Active = PlayerPrefs.GetInt(KActive, 0) == 1;
             if (!Active)
             {
+                Index = 0;
                 Chapter = 0;
                 Stage = 0;
                 Lives = StartingLives;
@@ -360,6 +453,20 @@ namespace HighNoon
                 return;
             }
 
+            int found = IndexOf(PlayerPrefs.GetString(KId, All[0].Id));
+            if (found < 0)
+            {
+                Active = false;
+                Index = 0;
+                Chapter = 0;
+                Stage = 0;
+                Lives = StartingLives;
+                HasSavedRun = false;
+                Save();
+                return;
+            }
+
+            Index = found;
             Chapter = Mathf.Clamp(PlayerPrefs.GetInt(KChapter, 0), 0, Chapters.Length - 1);
             Stage = Mathf.Clamp(PlayerPrefs.GetInt(KStage, 0), 0, CurrentChapter.Stages.Length - 1);
             Lives = PlayerPrefs.GetInt(KLives, StartingLives);
@@ -415,8 +522,13 @@ namespace HighNoon
         /// <summary>End the run (victory or defeat): clears the resumable save; a win counts a completion.</summary>
         public static void EndRun(bool victory)
         {
+            string id = Current.Id;
             Active = false;
-            if (victory) Records.ReportCompletion();
+            if (victory)
+            {
+                MarkCleared(id);
+                Records.ReportCompletion();
+            }
             Save();
         }
 

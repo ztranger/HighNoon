@@ -63,17 +63,13 @@ namespace HighNoon
             if (Campaign.HasSavedRun)
             {
                 var cont = ui.Button(root, "Continue", "CONTINUE CAMPAIGN", new Vector2(0.5f, 0.5f), new Vector2(420f, -80f), 640, 80, 30, new Color(0.55f, 0.70f, 0.40f), out _);
-                cont.onClick.AddListener(() => { MatchSettings.Mode = GameMode.PvE; DuelFlow.Map(); });
+                cont.onClick.AddListener(() => go(MenuScreenId.Campaigns));
             }
 
             var play = ui.Button(root, "Play", "PLAY", new Vector2(0.5f, 0.5f), new Vector2(420f, -220f), 640, 120, 56, UiBuild.Gold, out _);
             play.onClick.AddListener(() =>
             {
-                if (MatchSettings.Mode == GameMode.PvE)
-                {
-                    Campaign.StartRun();
-                    DuelFlow.Story(StoryKind.ChapterIntro);
-                }
+                if (MatchSettings.Mode == GameMode.PvE) go(MenuScreenId.Campaigns);
                 else DuelFlow.Duel();
             });
         }

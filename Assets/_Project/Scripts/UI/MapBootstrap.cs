@@ -52,7 +52,7 @@ namespace HighNoon
             bgImg.raycastTarget = false;
 
             // Header (landscape: top strip).
-            Label("ChapterKicker", $"CHAPTER {Campaign.Chapter + 1} / {Campaign.Chapters.Length}", 32,
+            Label("ChapterKicker", $"{Campaign.Current.Title}   ·   CHAPTER {Campaign.Chapter + 1} / {Campaign.Chapters.Length}", 32,
                 new Vector2(0.5f, 0.5f), 900, 50, new Color(0.9f, 0.85f, 0.7f), FontStyle.Normal)
                 .rectTransform.anchoredPosition = new Vector2(0f, 460f);
             Label("ChapterTitle", chapter.Title, 64,

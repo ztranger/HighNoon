@@ -6,9 +6,8 @@ using UnityEngine.InputSystem.UI;
 namespace HighNoon
 {
     /// <summary>
-    /// Landscape menu shell: camera, canvas, and a navigator over five screen classes
-    /// (<see cref="HomeScreen"/>, <see cref="StatsScreen"/>, <see cref="GunsScreen"/>,
-    /// <see cref="SetupScreen"/>, <see cref="SettingsScreen"/>). Home is the default.
+    /// Landscape menu shell: camera, canvas, and a navigator over the menu screens.
+    /// Home is the default. PvE opens <see cref="CampaignSelectScreen"/>.
     /// </summary>
     public class MainMenuBootstrap : MonoBehaviour
     {
@@ -17,6 +16,7 @@ namespace HighNoon
         GunsScreen _guns;
         SetupScreen _setup;
         SettingsScreen _settings;
+        CampaignSelectScreen _campaigns;
 
         void Start()
         {
@@ -45,12 +45,14 @@ namespace HighNoon
             _guns = new GunsScreen();
             _setup = new SetupScreen();
             _settings = new SettingsScreen();
+            _campaigns = new CampaignSelectScreen();
 
             _home.Build(ui.Stretch("Home", transform), ui, Show);
             _stats.Build(ui.Stretch("Stats", transform), ui, BackHome);
             _guns.Build(ui.Stretch("Guns", transform), ui, BackHome, () => _setup.Refresh());
             _setup.Build(ui.Stretch("Setup", transform), ui, BackHome, Show, () => _setup.Refresh());
             _settings.Build(ui.Stretch("Settings", transform), ui, BackHome);
+            _campaigns.Build(ui.Stretch("Campaigns", transform), ui, BackHome);
 
             _guns.Refresh();
             _setup.Refresh();
@@ -75,6 +77,7 @@ namespace HighNoon
                 if (on) _setup.Refresh();
             }
             if (_settings.Root != null) _settings.Root.gameObject.SetActive(id == MenuScreenId.Settings);
+            if (_campaigns.Root != null) _campaigns.Root.gameObject.SetActive(id == MenuScreenId.Campaigns);
         }
 
         void SetupCamera()

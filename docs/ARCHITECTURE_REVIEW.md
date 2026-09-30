@@ -87,11 +87,11 @@ Each PlayerPrefs writer calls `PlayerPrefs.Save()` itself. The META doc already 
 
 Every screen is `new GameObject` + uGUI `Text` (legacy font). Fast for MCP, painful for a shop / pass / reward popup. New meta UI should be **prefabs or a small widget kit** (`DialogBox` / `DuelHUD.ShowResult` / `ShowBanner` style), not another 800 lines on `MainMenuBootstrap`.
 
-### 3.5 No asmdef, no tests
+### 3.5 Tests
 
-Everything is `Assembly-CSharp`. Lane resolve, false-start, Timing PvE "all humans must hit green", and timestamp comparison are pure logic and should become Edit Mode tests once extracted from the MonoBehaviour coroutine. Do not add Play Mode tests as the first step — extract the decide step first.
+Lane resolve and the timing contest live in `DuelResolve`, covered by Edit Mode tests. Gameplay is assembly `HighNoon` (`Assets/_Project/Scripts/HighNoon.asmdef`); editor tools are `HighNoon.Editor`; tests are `HighNoon.Tests.Editor` and reference `HighNoon`. A test asmdef cannot see predefined `Assembly-CSharp`, which is why the old reference failed with `Duelist` not found. Do not add Play Mode tests as the next step. Timing PvE "all humans must hit green" is still in `ResolveTimingPve` (FX + views).
 
-**Done 2026-09-09 (decide + tests).** `DuelResolve.TryPickLaneWinner` / `PickTimingWinner` + Edit Mode tests (`HighNoon.Tests.Editor`). Gameplay stays `Assembly-CSharp`. One Editor test asmdef only — not a split of the 42 gameplay files. Timing PvE "all humans must hit green" is still in `ResolveTimingPve` (FX + views); extract later if it grows.
+`DuelResolveTests` (10): earlier fire wins, equal-time draw, list order does not break a tie, pre-BANG ignored, pre-BANG does not beat a valid fire, nobody fired, empty lane, closest aim wins, exact aim tie, aim tie within 0.0001. Unity still will not *run* the suite while any other assembly in the project fails to compile (the publishing SDK under `Assets/Scripts/` has been that failure).
 
 ---
 
@@ -259,7 +259,7 @@ Check boxes as you complete work. Prefer one item (or a tight pair) per change.
 - [x] Shared intro/stance coroutine used by Reaction and Timing. (`DuelManager.PlayIntroAndStance` — both `RunRound` and `RunTimingRound`.)
 - [x] Scene routing out of `DuelManager` (tiny navigator). (`Core/DuelFlow.cs` — Menu / Map / Duel / Tutorial / Story. Bootstraps use it too.)
 - [x] Single `SaveData` blob (settings + records + campaign) with one `Save()`; keep PlayerPrefs keys as the backend at first (META §1). (`Core/SaveData.cs` — one flush. Keys stay on the mutators. Typed blob / Economy still META.)
-- [x] Extract `DecideLane` / timing contest to a testable static/pure class; add Edit Mode tests. (`DuelResolve` + `Assets/_Project/Tests/Editor/DuelResolveTests.cs`. Visual `DecideLane` FX stays on the manager.)
+- [x] Extract `DecideLane` / timing contest to a testable static/pure class; add Edit Mode tests. (`DuelResolve` + `DuelResolveTests`, 10 tests, assembly `HighNoon.Tests.Editor` referencing `HighNoon`. Visual `DecideLane` FX stays on the manager.)
 - [ ] New UI as widgets/prefabs, not more tabs bolted onto `MainMenuBootstrap`. (Standing rule — do this when shop/pass UI lands, not a rewrite of the current 5 tabs.)
 
 Then follow [META_AND_PROGRESSION.md](META_AND_PROGRESSION.md) (economy → reputation/pass → cosmetics). That doc is still a **proposal**; this one is the engineering prerequisite.
@@ -303,7 +303,7 @@ Do not combine (1) with meta UI. Do not "while I'm here" rewrite `DuelManager` i
 | Menu | `UI/MainMenuBootstrap.cs` |
 | Audio | `Audio/AudioBank.cs`, `DuelAudio.cs`, `MusicPlayer.cs`, `Sfx.cs`, `ProcAudio.cs` |
 | Haptics | `Core/Haptics.cs` |
-| Edit Mode tests | `Assets/_Project/Tests/Editor/` (`DuelResolveTests`) |
+| Edit Mode tests | `Assets/_Project/Tests/Editor/` (`DuelResolveTests` — deleted in `d8f9739`, restored 2026-09-30) |
 | Quality / vSync | `ProjectSettings/QualitySettings.asset` |
 
 ---
@@ -324,3 +324,12 @@ Do not combine (1) with meta UI. Do not "while I'm here" rewrite `DuelManager` i
 Pass covered Core, Input, View, UI, Audio, Config. No automated tests existed to confirm runtime. Highest-confidence issues are the ones with a cited code path (timestamps, list-order ties, FX order, `new Texture2D`, LINQ in the bang `while`, `LoadSavedRun` `Max(1)`, Very Low / no `targetFrameRate`). Device-only items (haptics hitch, touch `startTime` vs editor mouse) need a phone to fully prove.
 
 Follow-up same day: P0–P2 done. P3 seams (shared intro/stance, `DuelFlow`, `SaveData` flush, `DuelResolve` + Edit Mode tests) are done. Standing leftover: new meta UI as widgets, not extra menu tabs. Then META §1 economy blob.
+
+## 11. Corrections (2026-09-30)
+
+Doc-vs-code drift found on the `horizontal` branch and reconciled with `CLAUDE.md`:
+
+- **Edit Mode tests compile against `HighNoon`.** `DuelResolveTests` references assembly `HighNoon`, not predefined `Assembly-CSharp` (that reference could not see `Duelist`). 10 tests. Unity still skips the run if another assembly in the project has compile errors.
+- **Whole app is landscape.** `AppInit.Apply` forces `LandscapeLeft` app-wide; every screen uses `UiCanvas.Overlay` at 1920×1080 (`ProjectSettings` default orientation is LandscapeLeft). No portrait canvas remains anywhere — the old "menus stay portrait" notes were wrong and are corrected in `CLAUDE.md`.
+- **Campaign re-themed.** Stage names/narrative changed (traveling-show / cabaret cast; see `docs/CAMPAIGN_STORY.md`). Per-stage mechanics (types, `Opponents`, `Hp`, `Strike`, 5 chapters / 13 stages) are unchanged.
+- **Cowboy art is now sprite-first.** `DuelistView` renders a skeletal rig (`CowboyRig`) / sprite sheet (`CowboySheet`) / static pose (`CowboySprites`) chosen by `CowboyCatalog`; `CowboyArt` is only the procedural fallback.

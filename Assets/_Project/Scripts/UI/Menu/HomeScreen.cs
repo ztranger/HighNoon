@@ -46,12 +46,7 @@ namespace HighNoon
             pvp.onClick.AddListener(() => { MatchSettings.Mode = GameMode.PvP; DuelFlow.Duel(); });
 
             var pve = ui.Button(root, "HomePvE", "PvE  CAMPAIGN", new Vector2(0.70f, 0.28f), Vector2.zero, 560, 120, 48, new Color(0.70f, 0.52f, 0.24f), out _);
-            pve.onClick.AddListener(() =>
-            {
-                MatchSettings.Mode = GameMode.PvE;
-                if (Campaign.HasSavedRun) DuelFlow.Map();
-                else { Campaign.StartRun(); DuelFlow.Story(StoryKind.ChapterIntro); }
-            });
+            pve.onClick.AddListener(() => go(MenuScreenId.Campaigns));
 
             _arenaName = ui.Text(root, "ArenaName", "RANDOM", 26, new Vector2(0.70f, 0.14f), Vector2.zero, 320, 44, UiBuild.Gold, FontStyle.Bold);
             var aPrev = ui.Button(root, "ArenaPrev", "<", new Vector2(0.70f, 0.14f), new Vector2(-220f, 0f), 80, 80, 44, UiBuild.Normal, out _);

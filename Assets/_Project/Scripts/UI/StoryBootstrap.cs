@@ -59,7 +59,7 @@ namespace HighNoon
             var ch = Campaign.CurrentChapter;
             Background(ch.Theme * 0.5f);
 
-            Text("Kicker", $"CHAPTER {Campaign.Chapter + 1} / {Campaign.Chapters.Length}", 36, 380, 900, 56,
+            Text("Kicker", $"{Campaign.Current.Title}   ·   CHAPTER {Campaign.Chapter + 1} / {Campaign.Chapters.Length}", 32, 380, 1200, 56,
                 new Color(0.9f, 0.85f, 0.72f), FontStyle.Normal);
             Text("Title", ch.Title, 88, 250, 1200, 140, Gold, FontStyle.Bold);
             Text("Tagline", ch.Tagline, 36, 120, 1100, 80, new Color(0.86f, 0.82f, 0.72f), FontStyle.Italic);
@@ -77,7 +77,9 @@ namespace HighNoon
 
             Text("Title", "VICTORY", 110, 360, 1040, 160, Gold, FontStyle.Bold);
             Cowboy(new Vector2(0f, 40f), new Vector2(260f, 340f));
-            Text("Flavor", "You cleaned up the West.  No one draws faster.", 36, -200, 1200, 80,
+            Text("Flavor", string.IsNullOrEmpty(Campaign.Current.Victory)
+                ? "The bill is done.  The crossroads keeps the name you came for."
+                : Campaign.Current.Victory, 36, -200, 1200, 80,
                 new Color(0.92f, 0.88f, 0.78f), FontStyle.Normal);
 
             Button("Again", "PLAY AGAIN", new Vector2(-320f, -380f), 520, 120, 48, Btn, Restart);
@@ -92,7 +94,9 @@ namespace HighNoon
 
             Text("Title", "DEFEAT", 110, 360, 1040, 160, Red, FontStyle.Bold);
             Prop(PropArt.Tombstone(), new Vector2(0f, 40f), new Vector2(240f, 300f));
-            Text("Flavor", "The frontier claims another.  Boot Hill has a fresh plot.", 36, -200, 1200, 80,
+            Text("Flavor", string.IsNullOrEmpty(Campaign.Current.Defeat)
+                ? "Three hearts.  The list keeps the last name."
+                : Campaign.Current.Defeat, 36, -200, 1200, 80,
                 new Color(0.82f, 0.8f, 0.78f), FontStyle.Normal);
 
             Button("Again", "TRY AGAIN", new Vector2(-320f, -380f), 520, 120, 48, Btn, Restart);
